@@ -1,0 +1,262 @@
+# Tasks: Trending Research Papers Tracker
+
+**Input**: Design documents from `/specs/001-build-a-website/`
+**Prerequisites**: plan.md (required), research.md, data-model.md, contracts/, quickstart.md
+
+## Format: `[ID] [P?] Description`
+- **[P]**: Can run in parallel (different files, no dependencies)
+- Include exact file paths in descriptions
+
+## Path Conventions
+- **Backend**: `backend/src/`, `backend/tests/` at repository root
+- **Frontend**: `frontend/src/`, `frontend/tests/` at repository root
+- **Shared**: `shared/schemas/` for TypeScript/Python type definitions
+
+---
+
+## Phase 3.1: Setup
+
+- [ ] T001 [P] Create backend project structure (backend/src/{models,services,api,jobs,llm}/, backend/tests/{contract,integration,unit}/)
+- [ ] T002 [P] Create frontend project structure (frontend/src/{components,pages,services,utils}/, frontend/tests/{components,integration}/)
+- [ ] T003 [P] Create shared schemas directory (shared/schemas/)
+- [ ] T004 Initialize Python backend with FastAPI dependencies (backend/requirements.txt: fastapi, uvicorn, sqlalchemy, asyncpg, alembic, httpx, pytest)
+- [ ] T005 Initialize Node.js frontend with Vite + React (frontend/package.json: react, vite, axios, recharts, tailwindcss, vitest)
+- [ ] T006 [P] Configure Python linting and type checking (backend/pyproject.toml: ruff, mypy)
+- [ ] T007 [P] Configure JavaScript linting (frontend/.eslintrc.js: ESLint with React rules)
+- [ ] T008 Create PostgreSQL + TimescaleDB setup script (docker-compose.yml or install instructions in docs/)
+- [ ] T009 Initialize Alembic for database migrations (backend/alembic/ with env.py configured for async SQLAlchemy)
+- [ ] T010 Download and configure llama.cpp Python bindings (backend/requirements.txt: llama-cpp-python)
+- [ ] T011 Create LLM model download script (backend/scripts/download_llm_model.py - downloads quantized 7B model to backend/models/)
+
+---
+
+## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
+**CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
+
+### Backend Contract Tests
+- [ ] T012 [P] Contract test GET /api/v1/topics in backend/tests/contract/test_topics_get.py
+- [ ] T013 [P] Contract test GET /api/v1/topics/{id} in backend/tests/contract/test_topics_get_by_id.py
+- [ ] T014 [P] Contract test GET /api/v1/papers in backend/tests/contract/test_papers_get.py
+- [ ] T015 [P] Contract test GET /api/v1/papers/{id} in backend/tests/contract/test_papers_get_by_id.py
+- [ ] T016 [P] Contract test GET /api/v1/papers/{id}/metrics in backend/tests/contract/test_papers_metrics.py
+
+### Frontend Component Tests
+- [ ] T017 [P] Component test for PaperCard in frontend/tests/components/test_paper_card.test.tsx
+- [ ] T018 [P] Component test for TopicList in frontend/tests/components/test_topic_list.test.tsx
+- [ ] T019 [P] Component test for TrendChart in frontend/tests/components/test_trend_chart.test.tsx
+- [ ] T020 [P] Component test for TopicManager in frontend/tests/components/test_topic_manager.test.tsx
+
+### Integration Tests (5 Quickstart Scenarios)
+- [ ] T021 [P] Integration test Scenario 1 (First-time user adds topic) in backend/tests/integration/test_scenario_add_topic.py
+- [ ] T022 [P] Integration test Scenario 2 (Multiple topics grouped) in backend/tests/integration/test_scenario_multiple_topics.py
+- [ ] T023 [P] Integration test Scenario 3 (View paper trend history) in backend/tests/integration/test_scenario_paper_trends.py
+- [ ] T024 [P] Integration test Scenario 4 (New paper surfacing) in backend/tests/integration/test_scenario_new_paper.py
+- [ ] T025 [P] Integration test Scenario 5 (Rapid star growth ranking) in backend/tests/integration/test_scenario_ranking.py
+
+---
+
+## Phase 3.3: Core Backend Implementation (ONLY after tests are failing)
+
+### Database Models
+- [ ] T026 [P] Create Paper model in backend/src/models/paper.py (SQLAlchemy with all fields from data-model.md)
+- [ ] T027 [P] Create Topic model in backend/src/models/topic.py
+- [ ] T028 [P] Create MetricSnapshot model in backend/src/models/metric_snapshot.py (TimescaleDB hypertable)
+- [ ] T029 [P] Create PaperTopicMatch model in backend/src/models/paper_topic_match.py
+- [ ] T030 Create Alembic migration for all models (backend/alembic/versions/001_initial_schema.py - includes TimescaleDB hypertable setup)
+
+### Backend Services
+- [ ] T031 Create PaperService CRUD in backend/src/services/paper_service.py (create, get, list with filtering/sorting)
+- [ ] T032 Create TopicService CRUD in backend/src/services/topic_service.py (get, list)
+- [ ] T033 Create MetricService for time-series operations in backend/src/services/metric_service.py (create snapshot, get history, calculate growth rates)
+- [ ] T034 Create HypeScoreService for trend calculation in backend/src/services/hype_score_service.py (implements formula from research.md)
+- [ ] T035 Create TopicMatchingService with LLM integration in backend/src/services/topic_matching_service.py (llama.cpp wrapper, relevance scoring)
+
+### API Routes
+- [ ] T036 Create GET /api/v1/topics endpoint in backend/src/api/routes/topics.py (list all topics)
+- [ ] T037 Create GET /api/v1/topics/{id} endpoint in backend/src/api/routes/topics.py (topic details)
+- [ ] T038 Create GET /api/v1/papers endpoint in backend/src/api/routes/papers.py (list papers with filtering by topic, sorting by hype/recency/stars)
+- [ ] T039 Create GET /api/v1/papers/{id} endpoint in backend/src/api/routes/papers.py (paper details with topics)
+- [ ] T040 Create GET /api/v1/papers/{id}/metrics endpoint in backend/src/api/routes/papers.py (time-series metrics history)
+- [ ] T041 Configure FastAPI app with CORS, error handlers, API docs in backend/src/api/main.py
+
+---
+
+## Phase 3.4: Frontend Implementation
+
+### API Client
+- [ ] T042 Create API client service in frontend/src/services/api_client.ts (Axios wrapper for all backend endpoints)
+- [ ] T043 Create TypeScript types from OpenAPI schemas in frontend/src/services/types.ts (Paper, Topic, MetricSnapshot, HypeScore)
+
+### React Components
+- [ ] T044 [P] Create PaperCard component in frontend/src/components/PaperCard.tsx (displays paper with hype score, trend indicator, links)
+- [ ] T045 [P] Create TopicList component in frontend/src/components/TopicList.tsx (displays available topics with add/remove buttons)
+- [ ] T046 [P] Create TrendChart component in frontend/src/components/TrendChart.tsx (Recharts line chart for stars/citations over time)
+- [ ] T047 [P] Create TopicManager component in frontend/src/components/TopicManager.tsx (manages localStorage for watched topics)
+- [ ] T048 [P] Create PaperList component in frontend/src/components/PaperList.tsx (grouped by topics, sortable)
+
+### Pages and Routing
+- [ ] T049 Create HomePage in frontend/src/pages/HomePage.tsx (main view: topic list + papers grouped by watched topics)
+- [ ] T050 Create PaperDetailPage in frontend/src/pages/PaperDetailPage.tsx (paper details + trend chart)
+- [ ] T051 Configure React Router in frontend/src/App.tsx (routes: / → HomePage, /papers/:id → PaperDetailPage)
+
+### Utilities
+- [ ] T052 [P] Create localStorage utility in frontend/src/utils/storage.ts (save/load watched topics)
+- [ ] T053 [P] Create hype score formatting utility in frontend/src/utils/format.ts (display score, trend label, date formatting)
+
+---
+
+## Phase 3.5: Integration & Background Jobs
+
+### API Integrations
+- [ ] T054 [P] Create arXiv API client in backend/src/jobs/arxiv_client.py (fetch papers by category, parse metadata)
+- [ ] T055 [P] Create Papers With Code API client in backend/src/jobs/paperwithcode_client.py (link papers to GitHub repos)
+- [ ] T056 [P] Create Semantic Scholar API client in backend/src/jobs/semanticscholar_client.py (fetch citation counts)
+- [ ] T057 [P] Create GitHub API client in backend/src/jobs/github_client.py (fetch star counts with rate limiting)
+
+### Background Jobs
+- [ ] T058 Create daily paper discovery job in backend/src/jobs/discover_papers.py (fetch from arXiv, cross-reference Papers With Code, store in DB)
+- [ ] T059 Create daily metric update job in backend/src/jobs/update_metrics.py (fetch stars/citations for all tracked papers, create MetricSnapshots)
+- [ ] T060 Create topic matching job in backend/src/jobs/match_topics.py (run LLM on new papers, create PaperTopicMatches with relevance >= 6.0)
+- [ ] T061 Configure APScheduler in backend/src/jobs/scheduler.py (cron: 2 AM UTC daily for all jobs)
+
+### Database Seeding
+- [ ] T062 Create topic seed script in backend/scripts/seed_topics.py (insert predefined topics: neural rendering, diffusion models, 3d reconstruction, etc.)
+- [ ] T063 Create sample data seed script in backend/scripts/seed_sample_data.py (add ~50 sample papers for testing)
+
+---
+
+## Phase 3.6: Polish
+
+### Styling & Responsiveness
+- [ ] T064 [P] Configure TailwindCSS for mobile-first design in frontend/tailwind.config.js
+- [ ] T065 [P] Implement responsive layouts for all components (breakpoints: 375px mobile, 768px tablet, 1024px desktop)
+- [ ] T066 [P] Add loading states to all components (skeleton screens or spinners)
+- [ ] T067 [P] Add error boundaries and error messages in frontend/src/components/ErrorBoundary.tsx
+
+### Performance Optimization
+- [ ] T068 Implement API response caching in backend (cache hype scores for 1 hour)
+- [ ] T069 Add code splitting and lazy loading in frontend/src/App.tsx (lazy load PaperDetailPage)
+- [ ] T070 Optimize database queries (add missing indexes, verify TimescaleDB compression working)
+- [ ] T071 Run performance tests (page load < 2s, API response < 500ms) and fix bottlenecks
+
+### Testing & Validation
+- [ ] T072 [P] Write unit tests for hype score calculation in backend/tests/unit/test_hype_score.py (validate formula matches research.md)
+- [ ] T073 [P] Write unit tests for topic matching accuracy in backend/tests/unit/test_topic_matching.py (validate relevance scoring)
+- [ ] T074 Run full integration test suite (all 5 quickstart scenarios) and verify passing
+- [ ] T075 Run mobile responsiveness tests (375px, 768px, 1024px widths)
+
+### Documentation & Deployment
+- [ ] T076 [P] Create backend README in backend/README.md (setup instructions, API docs link, architecture overview)
+- [ ] T077 [P] Create frontend README in frontend/README.md (setup instructions, component structure, development guide)
+- [ ] T078 [P] Document hype score algorithm in docs/hype-score.md (formula, examples, versioning)
+- [ ] T079 Create deployment guide in docs/deployment.md (docker-compose setup, nginx config, environment variables)
+- [ ] T080 Create quickstart execution script in scripts/run_quickstart.sh (automate all 5 scenarios for validation)
+
+---
+
+## Dependencies
+
+```
+Setup (T001-T011)
+  ↓
+Tests (T012-T025) [Must fail before implementation]
+  ↓
+Models (T026-T030) [P] → Services (T031-T035) → API Routes (T036-T041)
+  ↓
+Frontend Components (T044-T048) [P] → Pages (T049-T051)
+  ↓
+Jobs (T054-T061) → Seeding (T062-T063)
+  ↓
+Polish (T064-T080)
+```
+
+### Critical Path
+1. **T001-T011**: Setup infrastructure (parallel where possible)
+2. **T012-T025**: Write all tests (TDD - must fail)
+3. **T026-T030**: Database models (blocks services)
+4. **T031-T035**: Services (blocks API routes and jobs)
+5. **T036-T041**: API routes (blocks frontend)
+6. **T042-T051**: Frontend (depends on API)
+7. **T054-T063**: Jobs and seeding (depends on full stack)
+8. **T064-T080**: Polish (depends on everything)
+
+---
+
+## Parallel Execution Examples
+
+### Example 1: Backend Setup (T001, T002, T003 together)
+```bash
+# Run in parallel since they create different directories
+mkdir -p backend/src/{models,services,api,jobs,llm} backend/tests/{contract,integration,unit}
+mkdir -p frontend/src/{components,pages,services,utils} frontend/tests/{components,integration}
+mkdir -p shared/schemas
+```
+
+### Example 2: Database Models (T026-T029 together)
+All model files are independent, can be created in parallel:
+- backend/src/models/paper.py
+- backend/src/models/topic.py
+- backend/src/models/metric_snapshot.py
+- backend/src/models/paper_topic_match.py
+
+### Example 3: Contract Tests (T012-T016 together)
+All contract tests can be written in parallel since they test different endpoints:
+- backend/tests/contract/test_topics_get.py
+- backend/tests/contract/test_topics_get_by_id.py
+- backend/tests/contract/test_papers_get.py
+- backend/tests/contract/test_papers_get_by_id.py
+- backend/tests/contract/test_papers_metrics.py
+
+### Example 4: Frontend Components (T044-T048 together)
+All component files are independent:
+- frontend/src/components/PaperCard.tsx
+- frontend/src/components/TopicList.tsx
+- frontend/src/components/TrendChart.tsx
+- frontend/src/components/TopicManager.tsx
+- frontend/src/components/PaperList.tsx
+
+### Example 5: API Clients (T054-T057 together)
+All external API clients can be implemented in parallel:
+- backend/src/jobs/arxiv_client.py
+- backend/src/jobs/paperwithcode_client.py
+- backend/src/jobs/semanticscholar_client.py
+- backend/src/jobs/github_client.py
+
+---
+
+## Notes
+
+### TDD Enforcement
+- **Phase 3.2** tests MUST fail before moving to Phase 3.3
+- Verify tests are actually failing by running:
+  - Backend: `cd backend && pytest`
+  - Frontend: `cd frontend && npm test`
+- Do not proceed until you see expected failures
+
+### File Path Specificity
+Each task specifies exact file paths to avoid ambiguity:
+- ✅ "Create Paper model in backend/src/models/paper.py"
+- ❌ "Create Paper model"
+
+### Constitution Alignment
+- T068-T071: Performance tasks enforce <2s page load (Principle I)
+- T034, T072: Hype score transparency (Principle V)
+- T035, T073: Topic matching accuracy (Principle II)
+- T062: Predefined topics seed (Principle III)
+- T058-T061: Daily updates (Principle IV)
+
+### MVP Scope Boundaries
+Tasks excluded from MVP (deferred to post-MVP):
+- User authentication/accounts (using localStorage)
+- User-created topics (predefined only)
+- Paper recommendations beyond trending
+- AI chat or summarization features
+- Note-taking or collaboration features
+
+---
+
+**Total Tasks**: 80
+**Parallel Opportunities**: ~25 tasks marked [P]
+**Estimated Completion**: 40-50 hours for MVP (with parallelization)
+
+**Status**: ✅ Ready for execution via `/implement` or manual task processing
