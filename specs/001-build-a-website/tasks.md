@@ -41,17 +41,17 @@
 - [x] T016 [P] Contract test GET /api/v1/papers/{id}/metrics in backend/tests/contract/test_papers_metrics.py
 
 ### Frontend Component Tests
-- [ ] T017 [P] Component test for PaperCard in frontend/tests/components/test_paper_card.test.tsx
-- [ ] T018 [P] Component test for TopicList in frontend/tests/components/test_topic_list.test.tsx
-- [ ] T019 [P] Component test for TrendChart in frontend/tests/components/test_trend_chart.test.tsx
-- [ ] T020 [P] Component test for TopicManager in frontend/tests/components/test_topic_manager.test.tsx
+- [x] T017 [P] Component test for PaperCard in frontend/tests/components/test_paper_card.test.tsx
+- [x] T018 [P] Component test for TopicList in frontend/tests/components/test_topic_list.test.tsx
+- [x] T019 [P] Component test for TrendChart in frontend/tests/components/test_trend_chart.test.tsx
+- [x] T020 [P] Component test for TopicManager in frontend/tests/components/test_topic_manager.test.tsx
 
 ### Integration Tests (5 Quickstart Scenarios)
-- [ ] T021 [P] Integration test Scenario 1 (First-time user adds topic) in backend/tests/integration/test_scenario_add_topic.py
-- [ ] T022 [P] Integration test Scenario 2 (Multiple topics grouped) in backend/tests/integration/test_scenario_multiple_topics.py
-- [ ] T023 [P] Integration test Scenario 3 (View paper trend history) in backend/tests/integration/test_scenario_paper_trends.py
-- [ ] T024 [P] Integration test Scenario 4 (New paper surfacing) in backend/tests/integration/test_scenario_new_paper.py
-- [ ] T025 [P] Integration test Scenario 5 (Rapid star growth ranking) in backend/tests/integration/test_scenario_ranking.py
+- [x] T021 [P] Integration test Scenario 1 (First-time user adds topic) in backend/tests/integration/test_scenario_add_topic.py
+- [x] T022 [P] Integration test Scenario 2 (Multiple topics grouped) in backend/tests/integration/test_scenario_multiple_topics.py
+- [x] T023 [P] Integration test Scenario 3 (View paper trend history) in backend/tests/integration/test_scenario_paper_trends.py
+- [x] T024 [P] Integration test Scenario 4 (New paper surfacing) in backend/tests/integration/test_scenario_new_paper.py
+- [x] T025 [P] Integration test Scenario 5 (Rapid star growth ranking) in backend/tests/integration/test_scenario_ranking.py
 
 ---
 
