@@ -16,17 +16,17 @@
 
 ## Phase 3.1: Setup
 
-- [ ] T001 [P] Create backend project structure (backend/src/{models,services,api,jobs,llm}/, backend/tests/{contract,integration,unit}/)
-- [ ] T002 [P] Create frontend project structure (frontend/src/{components,pages,services,utils}/, frontend/tests/{components,integration}/)
-- [ ] T003 [P] Create shared schemas directory (shared/schemas/)
-- [ ] T004 Initialize Python backend with FastAPI dependencies (backend/requirements.txt: fastapi, uvicorn, sqlalchemy, asyncpg, alembic, httpx, pytest)
-- [ ] T005 Initialize Node.js frontend with Vite + React (frontend/package.json: react, vite, axios, recharts, tailwindcss, vitest)
-- [ ] T006 [P] Configure Python linting and type checking (backend/pyproject.toml: ruff, mypy)
-- [ ] T007 [P] Configure JavaScript linting (frontend/.eslintrc.js: ESLint with React rules)
-- [ ] T008 Create PostgreSQL + TimescaleDB setup script (docker-compose.yml or install instructions in docs/)
-- [ ] T009 Initialize Alembic for database migrations (backend/alembic/ with env.py configured for async SQLAlchemy)
-- [ ] T010 Download and configure llama.cpp Python bindings (backend/requirements.txt: llama-cpp-python)
-- [ ] T011 Create LLM model download script (backend/scripts/download_llm_model.py - downloads quantized 7B model to backend/models/)
+- [x] T001 [P] Create backend project structure (backend/src/{models,services,api,jobs,llm}/, backend/tests/{contract,integration,unit}/)
+- [x] T002 [P] Create frontend project structure (frontend/src/{components,pages,services,utils}/, frontend/tests/{components,integration}/)
+- [x] T003 [P] Create shared schemas directory (shared/schemas/)
+- [x] T004 Initialize Python backend with FastAPI dependencies (backend/requirements.txt: fastapi, uvicorn, sqlalchemy, asyncpg, alembic, httpx, pytest)
+- [x] T005 Initialize Node.js frontend with Vite + React (frontend/package.json: react, vite, axios, recharts, tailwindcss, vitest)
+- [x] T006 [P] Configure Python linting and type checking (backend/pyproject.toml: ruff, mypy)
+- [x] T007 [P] Configure JavaScript linting (frontend/.eslintrc.js: ESLint with React rules)
+- [x] T008 Create PostgreSQL + TimescaleDB setup script (docker-compose.yml or install instructions in docs/)
+- [x] T009 Initialize Alembic for database migrations (backend/alembic/ with env.py configured for async SQLAlchemy)
+- [x] T010 Download and configure llama.cpp Python bindings (backend/requirements.txt: llama-cpp-python)
+- [x] T011 Create LLM model download script (backend/scripts/download_llm_model.py - downloads quantized 7B model to backend/models/)
 
 ---
 
