@@ -55,53 +55,53 @@
 
 ---
 
-## Phase 3.3: Core Backend Implementation (ONLY after tests are failing)
+## Phase 3.3: Core Backend Implementation ✅ COMPLETED (2025-10-02)
 
 ### Database Models
-- [ ] T026 [P] Create Paper model in backend/src/models/paper.py (SQLAlchemy with all fields from data-model.md)
-- [ ] T027 [P] Create Topic model in backend/src/models/topic.py
-- [ ] T028 [P] Create MetricSnapshot model in backend/src/models/metric_snapshot.py (TimescaleDB hypertable)
-- [ ] T029 [P] Create PaperTopicMatch model in backend/src/models/paper_topic_match.py
-- [ ] T030 Create Alembic migration for all models (backend/alembic/versions/001_initial_schema.py - includes TimescaleDB hypertable setup)
+- [x] T026 [P] Create Paper model in backend/src/models/paper.py (SQLAlchemy with all fields from data-model.md)
+- [x] T027 [P] Create Topic model in backend/src/models/topic.py
+- [x] T028 [P] Create MetricSnapshot model in backend/src/models/metric_snapshot.py (TimescaleDB hypertable)
+- [x] T029 [P] Create PaperTopicMatch model in backend/src/models/paper_topic_match.py
+- [x] T030 Create Alembic migration for all models (backend/alembic/versions/001_initial_schema_with_timescaledb.py - includes TimescaleDB hypertable setup)
 
 ### Backend Services
-- [ ] T031 Create PaperService CRUD in backend/src/services/paper_service.py (create, get, list with filtering/sorting)
-- [ ] T032 Create TopicService CRUD in backend/src/services/topic_service.py (get, list)
-- [ ] T033 Create MetricService for time-series operations in backend/src/services/metric_service.py (create snapshot, get history, calculate growth rates)
-- [ ] T034 Create HypeScoreService for trend calculation in backend/src/services/hype_score_service.py (implements formula from research.md)
-- [ ] T035 Create TopicMatchingService with LLM integration in backend/src/services/topic_matching_service.py (llama.cpp wrapper, relevance scoring)
+- [x] T031 Create PaperService CRUD in backend/src/services/paper_service.py (create, get, list with filtering/sorting)
+- [x] T032 Create TopicService CRUD in backend/src/services/topic_service.py (get, list)
+- [x] T033 Create MetricService for time-series operations in backend/src/services/metric_service.py (create snapshot, get history, calculate growth rates)
+- [x] T034 Create HypeScoreService for trend calculation in backend/src/services/hype_score_service.py (implements formula from research.md)
+- [x] T035 Create TopicMatchingService with LLM integration in backend/src/services/topic_matching_service.py (llama.cpp wrapper, relevance scoring)
 
 ### API Routes
-- [ ] T036 Create GET /api/v1/topics endpoint in backend/src/api/routes/topics.py (list all topics)
-- [ ] T037 Create GET /api/v1/topics/{id} endpoint in backend/src/api/routes/topics.py (topic details)
-- [ ] T038 Create GET /api/v1/papers endpoint in backend/src/api/routes/papers.py (list papers with filtering by topic, sorting by hype/recency/stars)
-- [ ] T039 Create GET /api/v1/papers/{id} endpoint in backend/src/api/routes/papers.py (paper details with topics)
-- [ ] T040 Create GET /api/v1/papers/{id}/metrics endpoint in backend/src/api/routes/papers.py (time-series metrics history)
-- [ ] T041 Configure FastAPI app with CORS, error handlers, API docs in backend/src/api/main.py
+- [x] T036 Create GET /api/v1/topics endpoint in backend/src/api/topics.py (list all topics)
+- [x] T037 Create GET /api/v1/topics/{id} endpoint in backend/src/api/topics.py (topic details)
+- [x] T038 Create GET /api/v1/papers endpoint in backend/src/api/papers.py (list papers with filtering by topic, sorting by hype/recency/stars)
+- [x] T039 Create GET /api/v1/papers/{id} endpoint in backend/src/api/papers.py (paper details with topics)
+- [x] T040 Create GET /api/v1/papers/{id}/metrics endpoint in backend/src/api/papers.py (time-series metrics history)
+- [x] T041 Configure FastAPI app with CORS, error handlers, API docs in backend/src/main.py
 
 ---
 
-## Phase 3.4: Frontend Implementation
+## Phase 3.4: Frontend Implementation ✅ COMPLETED (2025-10-02)
 
 ### API Client
-- [ ] T042 Create API client service in frontend/src/services/api_client.ts (Axios wrapper for all backend endpoints)
-- [ ] T043 Create TypeScript types from OpenAPI schemas in frontend/src/services/types.ts (Paper, Topic, MetricSnapshot, HypeScore)
+- [x] T042 Create API client services in frontend/src/services/{papersService,topicsService}.ts (Axios wrappers for all backend endpoints)
+- [x] T043 Create TypeScript types inline in service files (Paper, Topic, MetricSnapshot interfaces)
 
 ### React Components
-- [ ] T044 [P] Create PaperCard component in frontend/src/components/PaperCard.tsx (displays paper with hype score, trend indicator, links)
-- [ ] T045 [P] Create TopicList component in frontend/src/components/TopicList.tsx (displays available topics with add/remove buttons)
-- [ ] T046 [P] Create TrendChart component in frontend/src/components/TrendChart.tsx (Recharts line chart for stars/citations over time)
-- [ ] T047 [P] Create TopicManager component in frontend/src/components/TopicManager.tsx (manages localStorage for watched topics)
-- [ ] T048 [P] Create PaperList component in frontend/src/components/PaperList.tsx (grouped by topics, sortable)
+- [x] T044 [P] Create PaperCard component in frontend/src/components/PaperCard.tsx (displays paper with hype score, trend indicator, links)
+- [x] T045 [P] Create TopicList component in frontend/src/components/TopicList.tsx (displays available topics with add/remove buttons)
+- [x] T046 [P] Create TrendChart component in frontend/src/components/TrendChart.tsx (Recharts line chart for stars/citations over time)
+- [x] T047 [P] Create TopicManager component in frontend/src/components/TopicManager.tsx (manages localStorage for watched topics)
+- [x] T048 [MERGED] PaperList functionality integrated into HomePage.tsx (papers displayed with sorting/filtering)
 
 ### Pages and Routing
-- [ ] T049 Create HomePage in frontend/src/pages/HomePage.tsx (main view: topic list + papers grouped by watched topics)
-- [ ] T050 Create PaperDetailPage in frontend/src/pages/PaperDetailPage.tsx (paper details + trend chart)
-- [ ] T051 Configure React Router in frontend/src/App.tsx (routes: / → HomePage, /papers/:id → PaperDetailPage)
+- [x] T049 Create HomePage in frontend/src/pages/HomePage.tsx (main view: topic list + papers with sorting)
+- [x] T050 Create PaperDetailPage in frontend/src/pages/PaperDetailPage.tsx (paper details + trend chart)
+- [x] T051 Configure React Router in frontend/src/App.tsx (routes: / → HomePage, /papers/:paperId → PaperDetailPage)
 
 ### Utilities
-- [ ] T052 [P] Create localStorage utility in frontend/src/utils/storage.ts (save/load watched topics)
-- [ ] T053 [P] Create hype score formatting utility in frontend/src/utils/format.ts (display score, trend label, date formatting)
+- [x] T052 [INLINE] localStorage utility implemented inline in TopicManager.tsx (save/load watched topics)
+- [x] T053 [INLINE] Formatting utilities implemented inline in components (date, score, trend formatting)
 
 ---
 
