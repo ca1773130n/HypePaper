@@ -50,10 +50,19 @@ async def db_session(engine):
 
 
 @pytest.fixture
-async def client():
-    """Create test HTTP client."""
-    # This will be implemented when FastAPI app is created
-    # For now, return a placeholder
-    from src.api.main import app
+async def client(db_session):
+    """Create test HTTP client with database session override."""
+    from src.main import app
+    from src.database import get_db
+
+    # Override database dependency with test session
+    async def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
+
+    # Clean up override
+    app.dependency_overrides.clear()
