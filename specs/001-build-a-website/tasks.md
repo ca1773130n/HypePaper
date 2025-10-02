@@ -105,23 +105,23 @@
 
 ---
 
-## Phase 3.5: Integration & Background Jobs
+## Phase 3.5: Integration & Background Jobs ✅ COMPLETED (2025-10-02)
 
 ### API Integrations
-- [ ] T054 [P] Create arXiv API client in backend/src/jobs/arxiv_client.py (fetch papers by category, parse metadata)
-- [ ] T055 [P] Create Papers With Code API client in backend/src/jobs/paperwithcode_client.py (link papers to GitHub repos)
-- [ ] T056 [P] Create Semantic Scholar API client in backend/src/jobs/semanticscholar_client.py (fetch citation counts)
-- [ ] T057 [P] Create GitHub API client in backend/src/jobs/github_client.py (fetch star counts with rate limiting)
+- [x] T054 [P] Create arXiv API client in backend/src/jobs/arxiv_client.py (fetch papers by category, parse metadata)
+- [x] T055 [P] Create Papers With Code API client in backend/src/jobs/paperwithcode_client.py (link papers to GitHub repos)
+- [x] T056 [P] Create Semantic Scholar API client in backend/src/jobs/semanticscholar_client.py (fetch citation counts)
+- [x] T057 [P] Create GitHub API client in backend/src/jobs/github_client.py (fetch star counts with rate limiting)
 
 ### Background Jobs
-- [ ] T058 Create daily paper discovery job in backend/src/jobs/discover_papers.py (fetch from arXiv, cross-reference Papers With Code, store in DB)
-- [ ] T059 Create daily metric update job in backend/src/jobs/update_metrics.py (fetch stars/citations for all tracked papers, create MetricSnapshots)
-- [ ] T060 Create topic matching job in backend/src/jobs/match_topics.py (run LLM on new papers, create PaperTopicMatches with relevance >= 6.0)
-- [ ] T061 Configure APScheduler in backend/src/jobs/scheduler.py (cron: 2 AM UTC daily for all jobs)
+- [x] T058 Create daily paper discovery job in backend/src/jobs/discover_papers.py (fetch from arXiv, cross-reference Papers With Code, store in DB)
+- [x] T059 Create daily metric update job in backend/src/jobs/update_metrics.py (fetch stars/citations for all tracked papers, create MetricSnapshots)
+- [x] T060 Create topic matching job in backend/src/jobs/match_topics.py (run LLM on new papers, create PaperTopicMatches with relevance >= 6.0)
+- [x] T061 Configure APScheduler in backend/src/jobs/scheduler.py (cron: 2 AM UTC daily for all jobs)
 
 ### Database Seeding
-- [ ] T062 Create topic seed script in backend/scripts/seed_topics.py (insert predefined topics: neural rendering, diffusion models, 3d reconstruction, etc.)
-- [ ] T063 Create sample data seed script in backend/scripts/seed_sample_data.py (add ~50 sample papers for testing)
+- [x] T062 Create topic seed script in backend/scripts/seed_topics.py (insert predefined topics: neural rendering, diffusion models, 3d reconstruction, etc.)
+- [x] T063 Create sample data seed script in backend/scripts/seed_sample_data.py (add ~50 sample papers for testing)
 
 ---
 
