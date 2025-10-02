@@ -34,11 +34,11 @@
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
 
 ### Backend Contract Tests
-- [ ] T012 [P] Contract test GET /api/v1/topics in backend/tests/contract/test_topics_get.py
-- [ ] T013 [P] Contract test GET /api/v1/topics/{id} in backend/tests/contract/test_topics_get_by_id.py
-- [ ] T014 [P] Contract test GET /api/v1/papers in backend/tests/contract/test_papers_get.py
-- [ ] T015 [P] Contract test GET /api/v1/papers/{id} in backend/tests/contract/test_papers_get_by_id.py
-- [ ] T016 [P] Contract test GET /api/v1/papers/{id}/metrics in backend/tests/contract/test_papers_metrics.py
+- [x] T012 [P] Contract test GET /api/v1/topics in backend/tests/contract/test_topics_get.py
+- [x] T013 [P] Contract test GET /api/v1/topics/{id} in backend/tests/contract/test_topics_get_by_id.py
+- [x] T014 [P] Contract test GET /api/v1/papers in backend/tests/contract/test_papers_get.py
+- [x] T015 [P] Contract test GET /api/v1/papers/{id} in backend/tests/contract/test_papers_get_by_id.py
+- [x] T016 [P] Contract test GET /api/v1/papers/{id}/metrics in backend/tests/contract/test_papers_metrics.py
 
 ### Frontend Component Tests
 - [ ] T017 [P] Component test for PaperCard in frontend/tests/components/test_paper_card.test.tsx
