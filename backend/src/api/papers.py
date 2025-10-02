@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..services import HypeScoreService, MetricService, PaperService
+from .cache import cache, cache_papers_list
 
 router = APIRouter(prefix="/api/v1/papers", tags=["papers"])
 
@@ -105,7 +106,7 @@ async def get_papers(
         db: Database session
 
     Returns:
-        PapersListResponse with papers array and pagination info
+        PapersListResponse with papers array and pagination info (cached for 1 hour)
 
     Raises:
         HTTPException: 400/422 if invalid sort parameter
@@ -117,6 +118,16 @@ async def get_papers(
             status_code=400,
             detail=f"Invalid sort parameter. Must be one of: {', '.join(valid_sorts)}",
         )
+
+    # Check cache first (1-hour TTL for hype scores)
+    cache_key = cache_papers_list(
+        topic_id=str(topic_id) if topic_id else None,
+        sort_by=sort,
+        limit=limit,
+    )
+    cached_response = cache.get(cache_key)
+    if cached_response:
+        return cached_response
 
     paper_service = PaperService(db)
     hype_score_service = HypeScoreService(db)
@@ -146,12 +157,17 @@ async def get_papers(
             )
         )
 
-    return PapersListResponse(
+    response = PapersListResponse(
         papers=paper_items,
         total=total,
         limit=limit,
         offset=offset,
     )
+
+    # Cache response for 1 hour (3600 seconds)
+    cache.set(cache_key, response, ttl_seconds=3600)
+
+    return response
 
 
 @router.get("/{paper_id}", response_model=PaperDetailResponse)

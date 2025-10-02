@@ -1,16 +1,24 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import HomePage from './pages/HomePage'
-import PaperDetailPage from './pages/PaperDetailPage'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { LoadingOverlay } from './components/LoadingStates'
+
+// Lazy load page components for code splitting
+const HomePage = lazy(() => import('./pages/HomePage'))
+const PaperDetailPage = lazy(() => import('./pages/PaperDetailPage'))
 
 const App: React.FC = () => {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/papers/:paperId" element={<PaperDetailPage />} />
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Suspense fallback={<LoadingOverlay message="Loading HypePaper..." />}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/papers/:paperId" element={<PaperDetailPage />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+
+# Testing
+.pytest_cache/
+
+# Claude Flow
+.claude-flow/
+memory/
+flows/
+
+# OS
+.DS_Store
