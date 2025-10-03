@@ -71,7 +71,6 @@ def upgrade() -> None:
     # 3. Metric snapshots table (will be converted to TimescaleDB hypertable)
     op.create_table(
         "metric_snapshots",
-        sa.Column("id", sa.BigInteger(), primary_key=True, autoincrement=True),
         sa.Column("paper_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("snapshot_date", sa.Date(), nullable=False),
         sa.Column("github_stars", sa.Integer(), nullable=True),
@@ -80,7 +79,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["paper_id"], ["papers.id"], ondelete="CASCADE"),
         sa.CheckConstraint("github_stars IS NULL OR github_stars >= 0", name="github_stars_non_negative"),
         sa.CheckConstraint("citation_count IS NULL OR citation_count >= 0", name="citation_count_non_negative"),
-        sa.UniqueConstraint("paper_id", "snapshot_date", name="unique_paper_snapshot_date"),
+        sa.PrimaryKeyConstraint("paper_id", "snapshot_date", name="pk_metric_snapshots"),
     )
     op.create_index("idx_metric_snapshots_paper_id", "metric_snapshots", ["paper_id"])
 
