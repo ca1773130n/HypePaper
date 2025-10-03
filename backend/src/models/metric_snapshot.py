@@ -41,23 +41,16 @@ class MetricSnapshot(Base):
 
     __tablename__ = "metric_snapshots"
 
-    # Primary key (bigint for TimescaleDB efficiency)
-    id: Mapped[int] = mapped_column(
-        BigInteger,
-        primary_key=True,
-        autoincrement=True,
-    )
-
-    # Foreign key
+    # Composite primary key (required for TimescaleDB hypertable)
     paper_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True),
         ForeignKey("papers.id", ondelete="CASCADE"),
+        primary_key=True,
         nullable=False,
-        index=True,
     )
 
-    # Time dimension (hypertable partitioning key)
-    snapshot_date: Mapped[date] = mapped_column(nullable=False)
+    # Time dimension (hypertable partitioning key, part of primary key)
+    snapshot_date: Mapped[date] = mapped_column(primary_key=True, nullable=False)
 
     # Metrics (nullable if data unavailable)
     github_stars: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -73,7 +66,6 @@ class MetricSnapshot(Base):
 
     # Constraints
     __table_args__ = (
-        UniqueConstraint("paper_id", "snapshot_date", name="unique_paper_snapshot_date"),
         CheckConstraint(
             "github_stars IS NULL OR github_stars >= 0",
             name="github_stars_non_negative",
