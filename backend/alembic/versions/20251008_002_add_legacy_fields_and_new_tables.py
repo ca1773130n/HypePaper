@@ -4,11 +4,12 @@ Revision ID: 002
 Revises: 001
 Create Date: 2025-10-08
 
-Extends papers table with 22 legacy fields and creates 5 new tables:
+Extends papers table with 22 legacy fields and creates 6 new tables:
 - authors: Paper authors with affiliations
 - paper_authors: Junction table for papers <-> authors
 - paper_references: Citation relationships (bidirectional)
-- github_metrics: GitHub star tracking (TimescaleDB hypertable)
+- github_metrics: GitHub metrics (one-to-one with papers)
+- github_star_snapshots: Daily star snapshots (TimescaleDB hypertable)
 - pdf_content: PDF text and table extraction results
 - llm_extractions: AI-extracted metadata with verification
 """
@@ -153,32 +154,61 @@ def upgrade() -> None:
     op.create_index("idx_paper_references_reference", "paper_references", ["reference_id"])
 
     # ============================================================
-    # 5. CREATE GITHUB_METRICS TABLE (TIMESCALEDB HYPERTABLE)
+    # 5. CREATE GITHUB_METRICS TABLE (ONE-TO-ONE WITH PAPER)
     # ============================================================
 
     op.create_table(
         "github_metrics",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("paper_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("repo_url", sa.String(500), nullable=False),
-        sa.Column("star_count", sa.Integer(), nullable=False),
-        sa.Column("timestamp", sa.TIMESTAMP(timezone=True), nullable=False),
-        sa.Column("avg_hype", sa.Float(), nullable=True),
+        sa.Column("paper_id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("repository_url", sa.String(500), nullable=False, unique=True),
+        sa.Column("repository_owner", sa.String(100), nullable=False),
+        sa.Column("repository_name", sa.String(200), nullable=False),
+        sa.Column("current_stars", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("current_forks", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("current_watchers", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("primary_language", sa.String(50), nullable=True),
+        sa.Column("repository_description", sa.Text(), nullable=True),
+        sa.Column("repository_created_at", sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column("repository_updated_at", sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column("average_hype", sa.Float(), nullable=True),
         sa.Column("weekly_hype", sa.Float(), nullable=True),
         sa.Column("monthly_hype", sa.Float(), nullable=True),
-        sa.Column("repo_created_at", sa.TIMESTAMP(timezone=True), nullable=True),
-        sa.Column("repo_language", sa.String(50), nullable=True),
+        sa.Column("tracking_start_date", sa.Date(), nullable=False),
+        sa.Column("last_tracked_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("NOW()"), nullable=False),
+        sa.Column("tracking_enabled", sa.Boolean(), nullable=False, server_default="true"),
+        sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("NOW()"), nullable=False),
+        sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("NOW()"), nullable=False),
         sa.ForeignKeyConstraint(["paper_id"], ["papers.id"], ondelete="CASCADE"),
-        sa.CheckConstraint("star_count >= 0", name="star_count_non_negative"),
     )
-    op.create_index("idx_github_metrics_paper", "github_metrics", ["paper_id"])
-    op.create_index("idx_github_metrics_timestamp", "github_metrics", ["timestamp"])
-    op.create_index("idx_github_metrics_paper_time", "github_metrics", ["paper_id", "timestamp"])
+    op.create_index("idx_github_metrics_repo_url", "github_metrics", ["repository_url"])
+    op.create_index("idx_github_metrics_owner", "github_metrics", ["repository_owner"])
+    op.create_index("idx_github_metrics_stars", "github_metrics", ["current_stars"], postgresql_ops={"current_stars": "DESC"})
+    op.create_index("idx_github_metrics_weekly_hype", "github_metrics", ["weekly_hype"], postgresql_ops={"weekly_hype": "DESC"})
+    op.create_index("idx_github_metrics_monthly_hype", "github_metrics", ["monthly_hype"], postgresql_ops={"monthly_hype": "DESC"})
 
-    # Convert to TimescaleDB hypertable
+    # ============================================================
+    # 6. CREATE GITHUB_STAR_SNAPSHOTS TABLE (TIMESCALEDB HYPERTABLE)
+    # ============================================================
+
+    op.create_table(
+        "github_star_snapshots",
+        sa.Column("paper_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("snapshot_date", sa.Date(), nullable=False),
+        sa.Column("star_count", sa.Integer(), nullable=False),
+        sa.Column("fork_count", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("watcher_count", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("stars_gained_since_yesterday", sa.Integer(), nullable=True),
+        sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("NOW()"), nullable=False),
+        sa.PrimaryKeyConstraint("paper_id", "snapshot_date", name="pk_github_star_snapshots"),
+        sa.ForeignKeyConstraint(["paper_id"], ["github_metrics.paper_id"], ondelete="CASCADE"),
+    )
+    op.create_index("idx_star_snapshots_date", "github_star_snapshots", ["snapshot_date"], postgresql_ops={"snapshot_date": "DESC"})
+    op.create_index("idx_star_snapshots_paper_date", "github_star_snapshots", ["paper_id", "snapshot_date"])
+
+    # Convert to TimescaleDB hypertable (use snapshot_date as partitioning column)
     op.execute(
         sa.text(
-            "SELECT create_hypertable('github_metrics', 'timestamp', chunk_time_interval => INTERVAL '7 days', if_not_exists => TRUE)"
+            "SELECT create_hypertable('github_star_snapshots', 'snapshot_date', chunk_time_interval => INTERVAL '7 days', if_not_exists => TRUE)"
         )
     )
 
@@ -186,7 +216,7 @@ def upgrade() -> None:
     op.execute(
         sa.text(
             """
-            ALTER TABLE github_metrics SET (
+            ALTER TABLE github_star_snapshots SET (
                 timescaledb.compress,
                 timescaledb.compress_segmentby = 'paper_id'
             )
@@ -195,12 +225,12 @@ def upgrade() -> None:
     )
     op.execute(
         sa.text(
-            "SELECT add_compression_policy('github_metrics', INTERVAL '30 days', if_not_exists => TRUE)"
+            "SELECT add_compression_policy('github_star_snapshots', INTERVAL '30 days', if_not_exists => TRUE)"
         )
     )
 
     # ============================================================
-    # 6. CREATE PDF_CONTENT TABLE
+    # 7. CREATE PDF_CONTENT TABLE
     # ============================================================
 
     op.create_table(
@@ -224,7 +254,7 @@ def upgrade() -> None:
     )
 
     # ============================================================
-    # 7. CREATE LLM_EXTRACTIONS TABLE
+    # 8. CREATE LLM_EXTRACTIONS TABLE
     # ============================================================
 
     op.create_table(
@@ -260,6 +290,7 @@ def downgrade() -> None:
     # Drop new tables
     op.drop_table("llm_extractions")
     op.drop_table("pdf_content")
+    op.drop_table("github_star_snapshots")
     op.drop_table("github_metrics")
     op.drop_table("paper_references")
     op.drop_table("paper_authors")

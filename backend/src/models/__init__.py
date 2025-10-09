@@ -3,23 +3,31 @@
 from .base import Base
 from .paper import Paper
 
-# Legacy models (if they exist)
-try:
-    from .hype_score import HypeScore
-    from .metric_snapshot import MetricSnapshot
-    from .paper_topic_match import PaperTopicMatch
-    from .topic import Topic
+# Legacy models
+from .topic import Topic
+from .paper_topic_match import PaperTopicMatch
+from .metric_snapshot import MetricSnapshot
 
-    __all__ = [
-        "Base",
-        "Paper",
-        "Topic",
-        "PaperTopicMatch",
-        "MetricSnapshot",
-        "HypeScore",
-    ]
-except ImportError:
-    __all__ = [
-        "Base",
-        "Paper",
-    ]
+# SOTAPapers integration models
+from .author import Author, PaperAuthor
+from .paper_reference import PaperReference
+from .github_metrics import GitHubMetrics, GitHubStarSnapshot
+from .pdf_content import PDFContent
+from .llm_extraction import LLMExtraction, ExtractionType, VerificationStatus
+
+__all__ = [
+    "Base",
+    "Paper",
+    "Topic",
+    "PaperTopicMatch",
+    "MetricSnapshot",
+    "Author",
+    "PaperAuthor",
+    "PaperReference",
+    "GitHubMetrics",
+    "GitHubStarSnapshot",
+    "PDFContent",
+    "LLMExtraction",
+    "ExtractionType",
+    "VerificationStatus",
+]

@@ -1,6 +1,6 @@
 """Health check and monitoring endpoints."""
 from datetime import datetime
-from typing import Dict
+from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import text
@@ -27,7 +27,7 @@ async def health_check() -> Dict[str, str]:
 
 
 @router.get("/ready", status_code=status.HTTP_200_OK)
-async def readiness_check(db: AsyncSession = Depends(get_db)) -> Dict[str, any]:
+async def readiness_check(db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
     """Readiness check with dependency validation.
 
     Checks:
@@ -76,7 +76,7 @@ async def readiness_check(db: AsyncSession = Depends(get_db)) -> Dict[str, any]:
 
 
 @router.get("/metrics", status_code=status.HTTP_200_OK)
-async def metrics(db: AsyncSession = Depends(get_db)) -> Dict[str, any]:
+async def metrics(db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
     """System metrics endpoint.
 
     Returns:

@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
 class CrawlJobRequest(BaseModel):
     """Request to trigger a crawl job."""
 
-    source: str = Field(..., description="Crawl source", regex="^(arxiv|conference|citations)$")
+    source: str = Field(..., description="Crawl source", pattern="^(arxiv|conference|citations)$")
 
     # ArXiv-specific
     arxiv_keywords: Optional[str] = None
@@ -39,7 +39,7 @@ class CrawlJobRequest(BaseModel):
     citation_depth: int = Field(default=1, ge=1, le=3)
 
     # Common
-    priority: str = Field(default="normal", regex="^(low|normal|high)$")
+    priority: str = Field(default="normal", pattern="^(low|normal|high)$")
     enable_enrichment: bool = False
 
 
@@ -58,8 +58,8 @@ class EnrichJobRequest(BaseModel):
             "llm_extract_datasets",
         ]
     )
-    llm_provider: str = Field(default="llamacpp", regex="^(openai|llamacpp)$")
-    priority: str = Field(default="normal", regex="^(low|normal|high)$")
+    llm_provider: str = Field(default="llamacpp", pattern="^(openai|llamacpp)$")
+    priority: str = Field(default="normal", pattern="^(low|normal|high)$")
     force_reprocess: bool = False
 
 
