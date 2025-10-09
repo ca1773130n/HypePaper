@@ -14,6 +14,7 @@ from .paper_reference import PaperReference
 from .github_metrics import GitHubMetrics, GitHubStarSnapshot
 from .pdf_content import PDFContent
 from .llm_extraction import LLMExtraction, ExtractionType, VerificationStatus
+from .admin_task_log import AdminTaskLog
 
 __all__ = [
     "Base",
@@ -30,4 +31,5 @@ __all__ = [
     "LLMExtraction",
     "ExtractionType",
     "VerificationStatus",
+    "AdminTaskLog",
 ]

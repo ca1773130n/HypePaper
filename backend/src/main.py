@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api import papers, topics
-from .api.v1 import citations, github, health, jobs
+from .api.v1 import citations, github, health, jobs, auth, admin
 from .api.v1 import papers as papers_v1
 from .middleware.error_handler import ErrorHandlerMiddleware, RequestLoggingMiddleware
 from .middleware.security import SecurityHeadersMiddleware
@@ -64,6 +64,8 @@ app.include_router(citations.router, prefix="/api/v1")
 app.include_router(github.router, prefix="/api/v1")
 app.include_router(jobs.router)  # jobs router already has /api/v1/jobs prefix
 app.include_router(health.router, prefix="/api/v1")
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(admin.router, prefix="/api/v1")
 
 # Include legacy routers (for backward compatibility)
 app.include_router(topics.router)

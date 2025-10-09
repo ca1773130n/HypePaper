@@ -54,6 +54,31 @@ class Settings(BaseSettings):
         validation_alias='PDF_STORAGE_PATH'
     )
 
+    # Supabase settings
+    supabase_url: str = Field(default='', validation_alias='SUPABASE_URL')
+    supabase_anon_key: str = Field(default='', validation_alias='SUPABASE_ANON_KEY')
+    supabase_service_key: str = Field(default='', validation_alias='SUPABASE_SERVICE_KEY')
+
+    # JWT settings (fallback for local dev)
+    jwt_secret: str = Field(
+        default='your-secret-key-change-in-production',
+        validation_alias='JWT_SECRET'
+    )
+    jwt_algorithm: str = Field(default='HS256', validation_alias='JWT_ALGORITHM')
+    access_token_expire_minutes: int = Field(default=43200, validation_alias='ACCESS_TOKEN_EXPIRE_MINUTES')
+
+    # CORS settings
+    cors_origins: list[str] = Field(
+        default=[
+            'http://localhost:5173',
+            'http://localhost:5174',
+            'http://localhost:3000',
+            'http://127.0.0.1:5173',
+            'http://127.0.0.1:5174',
+        ],
+        validation_alias='CORS_ORIGINS'
+    )
+
     # App settings
     app_name: str = "HypePaper"
     app_version: str = "1.0.0"
