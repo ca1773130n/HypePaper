@@ -159,29 +159,29 @@ async def trigger_crawl(
     # Generate job ID
     job_id = f"crawl-{request.source}-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}"
 
-    # Determine job type
+    # Determine job type and parameters
+    job_type = f"crawl_{request.source}"
+    task_name = "jobs.paper_crawler.crawl_papers"
+
+    # Build task kwargs based on source
+    task_kwargs = {"source": request.source}
+
     if request.source == "arxiv":
-        job_type = "crawl_arxiv"
-        task_name = "jobs.discover_papers.crawl_arxiv"
-        task_kwargs = {
-            "keywords": request.arxiv_keywords,
-            "category": request.arxiv_category,
-            "max_results": request.arxiv_max_results,
-        }
+        task_kwargs.update({
+            "arxiv_keywords": request.arxiv_keywords,
+            "arxiv_category": request.arxiv_category,
+            "arxiv_max_results": request.arxiv_max_results,
+        })
     elif request.source == "conference":
-        job_type = "crawl_conference"
-        task_name = "jobs.discover_papers.crawl_conference"
-        task_kwargs = {
+        task_kwargs.update({
             "conference_name": request.conference_name,
             "conference_year": request.conference_year,
-        }
+        })
     else:  # citations
-        job_type = "crawl_citations"
-        task_name = "jobs.discover_papers.crawl_citations"
-        task_kwargs = {
+        task_kwargs.update({
             "seed_paper_ids": request.seed_paper_ids,
-            "depth": request.citation_depth,
-        }
+            "citation_depth": request.citation_depth,
+        })
 
     # Queue Celery task
     try:
@@ -193,11 +193,12 @@ async def trigger_crawl(
         )
 
         # Estimate completion time (rough estimate)
-        estimated_minutes = {
-            "arxiv": request.arxiv_max_results // 10,
-            "conference": 30,
-            "citations": len(request.seed_paper_ids) * 5 * request.citation_depth,
-        }.get(request.source, 10)
+        if request.source == "arxiv":
+            estimated_minutes = request.arxiv_max_results // 10
+        elif request.source == "conference":
+            estimated_minutes = 30
+        else:  # citations
+            estimated_minutes = len(request.seed_paper_ids or []) * 5 * request.citation_depth
 
         estimated_completion = datetime.utcnow().isoformat() + f"+00:00"  # Simplified
 
@@ -245,10 +246,10 @@ async def trigger_enrich(
     # Queue Celery task
     try:
         task = celery_app.send_task(
-            "jobs.metadata_enricher.enrich_papers",
+            "jobs.metadata_enricher.enrich_paper",
             kwargs={
                 "paper_ids": request.paper_ids,
-                "tasks": request.enrichment_tasks,
+                "enrichment_tasks": request.enrichment_tasks,
                 "llm_provider": request.llm_provider,
                 "force_reprocess": request.force_reprocess,
             },

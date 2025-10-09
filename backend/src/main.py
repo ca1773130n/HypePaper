@@ -62,7 +62,7 @@ app.add_middleware(
 app.include_router(papers_v1.router, prefix="/api/v1")
 app.include_router(citations.router, prefix="/api/v1")
 app.include_router(github.router, prefix="/api/v1")
-app.include_router(jobs.router, prefix="/api/v1")
+app.include_router(jobs.router)  # jobs router already has /api/v1/jobs prefix
 app.include_router(health.router, prefix="/api/v1")
 
 # Include legacy routers (for backward compatibility)

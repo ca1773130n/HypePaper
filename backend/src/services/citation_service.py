@@ -37,6 +37,14 @@ class CitationMatcher:
         """
         self.threshold = similarity_threshold
 
+        # Set anystyle binary path (gem user install)
+        home = Path.home()
+        self.anystyle_bin = str(home / '.gem' / 'ruby' / '2.6.0' / 'bin' / 'anystyle')
+
+        # Fallback to system anystyle if user install not found
+        if not Path(self.anystyle_bin).exists():
+            self.anystyle_bin = 'anystyle'  # Use system PATH
+
     def normalize_title(self, title: str) -> str:
         """
         Normalize title for fuzzy matching.
@@ -106,7 +114,7 @@ class CitationMatcher:
         try:
             # Call AnyStyle CLI
             result = subprocess.run(
-                ['anystyle', 'parse', temp_path],
+                [self.anystyle_bin, 'parse', temp_path],
                 capture_output=True,
                 text=True,
                 timeout=10

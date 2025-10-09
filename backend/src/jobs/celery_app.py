@@ -6,7 +6,7 @@ from celery.schedules import crontab
 celery_app = Celery(
     'hypepaper',
     broker='redis://localhost:6379/0',
-    backend='db+postgresql://localhost/hypepaper'
+    backend='redis://localhost:6379/1'  # Use Redis backend instead of PostgreSQL for simplicity
 )
 
 celery_app.conf.update(
@@ -25,3 +25,9 @@ celery_app.conf.update(
         },
     },
 )
+
+# Import task modules for Celery task discovery
+# These imports must come after celery_app creation to avoid circular imports
+from . import paper_crawler  # noqa: F401, E402
+from . import metadata_enricher  # noqa: F401, E402
+from . import star_tracker  # noqa: F401, E402

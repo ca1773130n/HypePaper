@@ -11,12 +11,14 @@ from pathlib import Path
 from typing import List, Optional
 
 import fitz  # PyMuPDF
-from gmft.auto import (
-    TATRDetectorConfig,
+# Import from gmft v0.2.1 API (no 'auto' module)
+from gmft import (
     AutoTableDetector,
     AutoTableFormatter,
-    AutoFormatConfig
+    AutoFormatConfig,
+    TATRFormatConfig
 )
+from gmft.table_detection import TATRTableDetector, TableDetectorConfig
 from gmft.pdf_bindings import PyPDFium2Document
 
 
@@ -40,7 +42,8 @@ class PDFAnalysisService:
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
 
         # Initialize GMFT table detector (reusable across requests)
-        detector_config = TATRDetectorConfig()
+        # For gmft v0.2.1, use TableDetectorConfig
+        detector_config = TableDetectorConfig()
         detector_config.detector_base_threshold = 0.75
         self.table_detector = AutoTableDetector(detector_config)
 
