@@ -1,16 +1,24 @@
 import { createApp } from 'vue'
-import { createRouter, createWebHistory } from 'vue-router'
-import './assets/index.css'
+import { createPinia } from 'pinia'
 import App from './App.vue'
-import HomePage from './pages/HomePage.vue'
-import PaperDetailPage from './pages/PaperDetailPage.vue'
+import router from './router'
+import './assets/main.css'
+import axios from 'axios'
+import { useAuthStore } from './stores/auth'
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes: [
-    { path: '/', component: HomePage },
-    { path: '/papers/:id', component: PaperDetailPage },
-  ],
+const app = createApp(App)
+const pinia = createPinia()
+
+app.use(pinia)
+app.use(router)
+
+// Configure axios interceptor for auth
+axios.interceptors.request.use(async (config) => {
+  const authStore = useAuthStore()
+  if (authStore.session?.access_token) {
+    config.headers.Authorization = `Bearer ${authStore.session.access_token}`
+  }
+  return config
 })
 
-createApp(App).use(router).mount('#app')
+app.mount('#app')

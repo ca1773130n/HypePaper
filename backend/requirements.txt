@@ -43,6 +43,10 @@ aiohttp==3.9.1
 
 # Web scraping dependencies
 selenium==4.15.2
-beautifulsoup4==4.12.2
+beautifulsoup4==4.12.3
 undetected-chromedriver==3.5.4
 requests==2.31.0
+
+# Authentication
+supabase==2.3.4
+pydantic-settings==2.1.0
