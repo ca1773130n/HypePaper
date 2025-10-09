@@ -16,7 +16,7 @@ from sqlalchemy import select, func, or_, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ...models import Paper, PaperReference, GitHubMetrics, GitHubStarSnapshot
+from ...models import Paper, PaperReference, GitHubMetrics, GitHubStarSnapshot, PaperTopicMatch
 from ...services import PaperService
 from .dependencies import get_db
 
@@ -152,6 +152,7 @@ async def list_papers(
     ),
 
     # Filters
+    topic_id: Optional[str] = Query(None, description="Filter by topic ID"),
     primary_task: Optional[str] = Query(None, description="Filter by primary research task"),
     secondary_task: Optional[str] = Query(None, description="Filter by secondary research task"),
     method: Optional[str] = Query(None, description="Filter by method (primary/secondary/tertiary)"),
@@ -183,6 +184,12 @@ async def list_papers(
 
     # Apply filters
     filters = []
+
+    # Topic filter (join with paper_topic_matches table)
+    if topic_id:
+        query = query.join(PaperTopicMatch, Paper.id == PaperTopicMatch.paper_id).where(
+            PaperTopicMatch.topic_id == topic_id
+        )
 
     if primary_task:
         filters.append(Paper.primary_task == primary_task)

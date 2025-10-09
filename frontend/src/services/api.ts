@@ -46,8 +46,20 @@ export interface MetricSnapshot {
   citation_count: number | null
 }
 
+export interface PapersListResponse {
+  papers: Paper[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export interface TopicsListResponse {
+  topics: Topic[]
+  total: number
+}
+
 export const topicsApi = {
-  getAll: () => api.get<Topic[]>('/api/v1/topics'),
+  getAll: () => api.get<TopicsListResponse>('/api/v1/topics'),
   getById: (id: string) => api.get<Topic>(`/api/v1/topics/${id}`),
 }
 
@@ -57,7 +69,7 @@ export const papersApi = {
     sort_by?: 'hype_score' | 'published_date' | 'stars' | 'citations'
     limit?: number
     offset?: number
-  }) => api.get<Paper[]>('/api/v1/papers', { params }),
+  }) => api.get<PapersListResponse>('/api/v1/papers', { params }),
   getById: (id: string) => api.get<Paper>(`/api/v1/papers/${id}`),
   getMetrics: (id: string, params?: { days?: number }) =>
     api.get<MetricSnapshot[]>(`/api/v1/papers/${id}/metrics`, { params }),

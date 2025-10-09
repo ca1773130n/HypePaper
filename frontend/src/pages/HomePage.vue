@@ -220,7 +220,7 @@ const sortOptions = [
 const fetchTopics = async () => {
   try {
     const response = await topicsApi.getAll()
-    topics.value = response.data
+    topics.value = response.data.topics
   } catch (err) {
     console.error('Failed to fetch topics:', err)
   }
@@ -235,7 +235,7 @@ const fetchPapers = async () => {
       sort_by: selectedSort.value,
       limit: 100,
     })
-    papers.value = response.data
+    papers.value = response.data.papers
   } catch (err) {
     error.value = 'Failed to load papers. Please try again.'
     console.error('Failed to fetch papers:', err)
