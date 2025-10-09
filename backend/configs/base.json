@@ -1,0 +1,10 @@
+{
+  "app": {
+    "name": "HypePaper",
+    "version": "1.0.0",
+    "debug": false
+  },
+  "pdf_storage": {
+    "base_path": "/Users/edward.seo/dev/private/research/DeepResearch/HypePaper/data/papers"
+  }
+}

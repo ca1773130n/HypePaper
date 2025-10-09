@@ -1,0 +1,931 @@
+openapi: 3.0.3
+info:
+  title: HypePaper Papers API (Extended)
+  version: 1.0.0
+  description: |
+    Extended Papers API with SOTAPapers legacy integration.
+
+    Adds support for:
+    - AI-extracted metadata filtering (tasks, methods, datasets)
+    - Citation graph queries
+    - GitHub metrics integration
+    - Conference paper metadata
+
+  contact:
+    name: HypePaper API Support
+    email: support@hypepaper.dev
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://api.hypepaper.dev/v1
+    description: Production server
+
+tags:
+  - name: papers
+    description: Paper discovery and metadata operations
+
+paths:
+  /papers:
+    get:
+      summary: List papers with filtering
+      description: |
+        Retrieve paginated list of papers with rich filtering options.
+
+        Supports filtering by:
+        - Research tasks (primary/secondary/tertiary)
+        - Methods used
+        - Datasets mentioned
+        - GitHub star counts
+        - Publication dates and venues
+        - Citation counts
+
+      operationId: listPapers
+      tags:
+        - papers
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+
+        - name: page_size
+          in: query
+          description: Results per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+
+        - name: sort
+          in: query
+          description: Sort field and direction
+          required: false
+          schema:
+            type: string
+            enum:
+              - published_date_desc
+              - published_date_asc
+              - github_stars_desc
+              - citations_desc
+              - weekly_hype_desc
+              - monthly_hype_desc
+            default: published_date_desc
+
+        # Filters
+        - name: primary_task
+          in: query
+          description: Filter by primary research task
+          required: false
+          schema:
+            type: string
+            example: Image Classification
+
+        - name: secondary_task
+          in: query
+          description: Filter by secondary research task
+          required: false
+          schema:
+            type: string
+
+        - name: method
+          in: query
+          description: Filter by method (primary/secondary/tertiary)
+          required: false
+          schema:
+            type: string
+            example: Convolutional Neural Network
+
+        - name: datasets_used
+          in: query
+          description: Filter by dataset name (contains)
+          required: false
+          schema:
+            type: string
+            example: ImageNet
+
+        - name: metrics_used
+          in: query
+          description: Filter by evaluation metric
+          required: false
+          schema:
+            type: string
+            example: Accuracy
+
+        - name: min_github_stars
+          in: query
+          description: Minimum GitHub stars
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+
+        - name: min_citations
+          in: query
+          description: Minimum citation count
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+
+        - name: venue
+          in: query
+          description: Filter by venue/conference name
+          required: false
+          schema:
+            type: string
+            example: CVPR 2024
+
+        - name: year
+          in: query
+          description: Filter by publication year
+          required: false
+          schema:
+            type: integer
+            minimum: 1900
+            maximum: 2100
+
+        - name: year_min
+          in: query
+          description: Minimum publication year
+          required: false
+          schema:
+            type: integer
+
+        - name: year_max
+          in: query
+          description: Maximum publication year
+          required: false
+          schema:
+            type: integer
+
+        - name: has_github
+          in: query
+          description: Filter papers with GitHub repositories
+          required: false
+          schema:
+            type: boolean
+
+        - name: paper_type
+          in: query
+          description: Filter by paper type
+          required: false
+          schema:
+            type: string
+            enum: [oral, poster, spotlight, workshop]
+
+        - name: accept_status
+          in: query
+          description: Filter by acceptance status
+          required: false
+          schema:
+            type: string
+            enum: [accepted, rejected, pending]
+
+        - name: search
+          in: query
+          description: Full-text search across title and abstract
+          required: false
+          schema:
+            type: string
+
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - page
+                  - page_size
+                  - total_pages
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PaperExtended'
+                  total:
+                    type: integer
+                    description: Total number of papers matching filters
+                    example: 1523
+                  page:
+                    type: integer
+                    description: Current page number
+                    example: 1
+                  page_size:
+                    type: integer
+                    description: Results per page
+                    example: 20
+                  total_pages:
+                    type: integer
+                    description: Total number of pages
+                    example: 77
+              examples:
+                filtered_results:
+                  summary: Papers filtered by task and GitHub stars
+                  value:
+                    items:
+                      - id: "550e8400-e29b-41d4-a716-446655440000"
+                        arxiv_id: "2301.12345"
+                        title: "Attention Is All You Need"
+                        authors: ["Vaswani, Ashish", "Shazeer, Noam"]
+                        abstract: "The dominant sequence transduction models..."
+                        published_date: "2017-06-12"
+                        year: 2017
+                        venue: "NeurIPS 2017"
+                        primary_task: "Machine Translation"
+                        secondary_task: "Sequence Modeling"
+                        primary_method: "Transformer Architecture"
+                        datasets_used: ["WMT 2014", "WMT 2016"]
+                        metrics_used: ["BLEU Score"]
+                        github_url: "https://github.com/tensorflow/tensor2tensor"
+                        github_stars: 15234
+                        github_weekly_hype: 45.2
+                        citations_total: 12567
+                        pdf_url: "https://arxiv.org/pdf/2301.12345.pdf"
+                    total: 234
+                    page: 1
+                    page_size: 20
+                    total_pages: 12
+
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /papers/{paper_id}:
+    get:
+      summary: Get paper by ID
+      description: Retrieve detailed paper information including all metadata
+      operationId: getPaper
+      tags:
+        - papers
+      parameters:
+        - name: paper_id
+          in: path
+          required: true
+          description: Paper UUID or ArXiv ID
+          schema:
+            type: string
+            example: "550e8400-e29b-41d4-a716-446655440000"
+
+      responses:
+        '200':
+          description: Paper found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperDetailed'
+
+        '404':
+          description: Paper not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /papers/{paper_id}/citations:
+    get:
+      summary: Get paper citations
+      description: |
+        Retrieve citation relationships for a paper.
+
+        Returns both incoming (papers citing this one) and outgoing (papers cited by this one).
+
+      operationId: getPaperCitations
+      tags:
+        - papers
+      parameters:
+        - name: paper_id
+          in: path
+          required: true
+          description: Paper UUID or ArXiv ID
+          schema:
+            type: string
+
+        - name: direction
+          in: query
+          description: Citation direction
+          required: false
+          schema:
+            type: string
+            enum: [in, out, both]
+            default: both
+
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+
+        - name: page_size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+
+      responses:
+        '200':
+          description: Citations found
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - paper_id
+                  - citations_in
+                  - citations_out
+                  - total_in
+                  - total_out
+                properties:
+                  paper_id:
+                    type: string
+                    format: uuid
+                  citations_in:
+                    type: array
+                    description: Papers citing this paper
+                    items:
+                      $ref: '#/components/schemas/CitationRelationship'
+                  citations_out:
+                    type: array
+                    description: Papers cited by this paper
+                    items:
+                      $ref: '#/components/schemas/CitationRelationship'
+                  total_in:
+                    type: integer
+                    description: Total incoming citations
+                  total_out:
+                    type: integer
+                    description: Total outgoing citations
+              examples:
+                citations:
+                  summary: Citation relationships
+                  value:
+                    paper_id: "550e8400-e29b-41d4-a716-446655440000"
+                    citations_in:
+                      - related_paper_id: "660e8400-e29b-41d4-a716-446655440001"
+                        related_paper_title: "BERT: Pre-training of Deep Bidirectional Transformers"
+                        reference_text: "Vaswani et al. (2017) introduced the Transformer architecture..."
+                        match_score: 95.5
+                        match_method: "fuzzy_title_year"
+                        created_at: "2024-01-15T10:30:00Z"
+                    citations_out:
+                      - related_paper_id: "770e8400-e29b-41d4-a716-446655440002"
+                        related_paper_title: "Long Short-Term Memory"
+                        reference_text: "Hochreiter and Schmidhuber (1997) proposed LSTM..."
+                        match_score: 100.0
+                        match_method: "exact"
+                        created_at: "2024-01-15T10:30:00Z"
+                    total_in: 12567
+                    total_out: 42
+
+        '404':
+          description: Paper not found
+
+  /papers/{paper_id}/github:
+    get:
+      summary: Get GitHub metrics
+      description: |
+        Retrieve GitHub repository metrics and star tracking history.
+
+        Includes current stats and historical snapshots.
+
+      operationId: getPaperGitHub
+      tags:
+        - papers
+      parameters:
+        - name: paper_id
+          in: path
+          required: true
+          schema:
+            type: string
+
+        - name: history_days
+          in: query
+          description: Number of days of history to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            default: 90
+
+      responses:
+        '200':
+          description: GitHub metrics found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitHubMetricsDetailed'
+
+        '404':
+          description: Paper not found or no GitHub repository associated
+
+components:
+  schemas:
+    PaperExtended:
+      type: object
+      description: Paper with extended metadata (list view)
+      required:
+        - id
+        - title
+        - authors
+        - abstract
+        - published_date
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+        arxiv_id:
+          type: string
+          nullable: true
+          example: "2301.12345"
+
+        doi:
+          type: string
+          nullable: true
+          example: "10.48550/arXiv.2301.12345"
+
+        legacy_id:
+          type: string
+          nullable: true
+          description: SHA256 hash of title+year for deduplication
+
+        title:
+          type: string
+          minLength: 10
+          maxLength: 500
+          example: "Attention Is All You Need"
+
+        authors:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          example: ["Vaswani, Ashish", "Shazeer, Noam", "Parmar, Niki"]
+
+        abstract:
+          type: string
+          example: "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks..."
+
+        published_date:
+          type: string
+          format: date
+          example: "2017-06-12"
+
+        year:
+          type: integer
+          nullable: true
+          example: 2017
+
+        venue:
+          type: string
+          nullable: true
+          example: "NeurIPS 2017"
+
+        # AI-extracted tasks
+        primary_task:
+          type: string
+          nullable: true
+          example: "Machine Translation"
+
+        secondary_task:
+          type: string
+          nullable: true
+          example: "Sequence Modeling"
+
+        tertiary_task:
+          type: string
+          nullable: true
+
+        # AI-extracted methods
+        primary_method:
+          type: string
+          nullable: true
+          example: "Transformer Architecture"
+
+        secondary_method:
+          type: string
+          nullable: true
+
+        tertiary_method:
+          type: string
+          nullable: true
+
+        # AI-extracted datasets and metrics
+        datasets_used:
+          type: array
+          nullable: true
+          items:
+            type: string
+          example: ["WMT 2014 English-German", "WMT 2014 English-French"]
+
+        metrics_used:
+          type: array
+          nullable: true
+          items:
+            type: string
+          example: ["BLEU Score", "Perplexity"]
+
+        # Conference metadata
+        paper_type:
+          type: string
+          nullable: true
+          enum: [oral, poster, spotlight, workshop]
+          example: "oral"
+
+        session_type:
+          type: string
+          nullable: true
+          example: "Machine Translation & Sequence Models"
+
+        accept_status:
+          type: string
+          nullable: true
+          enum: [accepted, rejected, pending]
+          example: "accepted"
+
+        # URLs
+        github_url:
+          type: string
+          nullable: true
+          format: uri
+          example: "https://github.com/tensorflow/tensor2tensor"
+
+        arxiv_url:
+          type: string
+          nullable: true
+          format: uri
+          example: "https://arxiv.org/abs/1706.03762"
+
+        pdf_url:
+          type: string
+          nullable: true
+          format: uri
+          example: "https://arxiv.org/pdf/1706.03762.pdf"
+
+        youtube_url:
+          type: string
+          nullable: true
+          format: uri
+
+        project_page_url:
+          type: string
+          nullable: true
+          format: uri
+
+        # GitHub metrics (summary)
+        github_stars:
+          type: integer
+          nullable: true
+          description: Current GitHub star count
+          example: 15234
+
+        github_weekly_hype:
+          type: number
+          format: float
+          nullable: true
+          description: Stars gained in last 7 days
+          example: 45.2
+
+        github_monthly_hype:
+          type: number
+          format: float
+          nullable: true
+          description: Stars gained in last 30 days
+          example: 182.5
+
+        # Citation metrics (summary)
+        citations_total:
+          type: integer
+          description: Total citations (incoming)
+          example: 12567
+
+        references_total:
+          type: integer
+          description: Total references (outgoing)
+          example: 42
+
+        # Timestamps
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-10-08T14:25:00Z"
+
+    PaperDetailed:
+      allOf:
+        - $ref: '#/components/schemas/PaperExtended'
+        - type: object
+          properties:
+            # Additional detailed fields
+            affiliations:
+              type: object
+              nullable: true
+              description: Author affiliations mapping
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+              example:
+                "Vaswani, Ashish": ["Google Brain"]
+                "Shazeer, Noam": ["Google Brain"]
+
+            affiliations_country:
+              type: object
+              nullable: true
+              description: Country extraction from affiliations
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+              example:
+                "Vaswani, Ashish": ["USA"]
+
+            pages:
+              type: object
+              nullable: true
+              properties:
+                start:
+                  type: integer
+                end:
+                  type: integer
+                total:
+                  type: integer
+              example:
+                start: 5998
+                end: 6008
+                total: 11
+
+            note:
+              type: string
+              nullable: true
+              description: Additional notes or annotations
+
+            bibtex:
+              type: string
+              nullable: true
+              description: BibTeX citation entry
+              example: "@article{vaswani2017attention,\n  title={Attention is all you need},\n  author={Vaswani, Ashish and Shazeer, Noam},\n  journal={Advances in neural information processing systems},\n  volume={30},\n  year={2017}\n}"
+
+            comparisons:
+              type: object
+              nullable: true
+              description: Comparison results from paper
+              additionalProperties: true
+              example:
+                baseline_lstm: 24.5
+                proposed_transformer: 28.4
+
+            limitations:
+              type: string
+              nullable: true
+              description: Paper limitations extracted by LLM
+
+            # Full PDF content flag
+            has_pdf_content:
+              type: boolean
+              description: Whether PDF content has been extracted
+              example: true
+
+            # LLM extraction metadata
+            llm_extractions_count:
+              type: integer
+              description: Number of LLM extractions
+              example: 8
+
+            llm_extractions_verified_count:
+              type: integer
+              description: Number of verified LLM extractions
+              example: 5
+
+    CitationRelationship:
+      type: object
+      required:
+        - related_paper_id
+        - related_paper_title
+      properties:
+        related_paper_id:
+          type: string
+          format: uuid
+
+        related_paper_title:
+          type: string
+
+        related_paper_authors:
+          type: array
+          items:
+            type: string
+
+        related_paper_year:
+          type: integer
+          nullable: true
+
+        reference_text:
+          type: string
+          nullable: true
+          description: Original citation string from PDF
+
+        match_score:
+          type: number
+          format: float
+          nullable: true
+          minimum: 0
+          maximum: 100
+          description: Fuzzy matching similarity score
+
+        match_method:
+          type: string
+          nullable: true
+          enum: [exact, fuzzy_title, fuzzy_title_year]
+
+        verified_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Manual verification timestamp
+
+        created_at:
+          type: string
+          format: date-time
+
+    GitHubMetricsDetailed:
+      type: object
+      required:
+        - paper_id
+        - repository_url
+        - current_stats
+      properties:
+        paper_id:
+          type: string
+          format: uuid
+
+        repository_url:
+          type: string
+          format: uri
+          example: "https://github.com/tensorflow/tensor2tensor"
+
+        repository_owner:
+          type: string
+          example: "tensorflow"
+
+        repository_name:
+          type: string
+          example: "tensor2tensor"
+
+        current_stats:
+          type: object
+          required:
+            - stars
+            - forks
+            - watchers
+          properties:
+            stars:
+              type: integer
+              example: 15234
+            forks:
+              type: integer
+              example: 3421
+            watchers:
+              type: integer
+              example: 542
+
+        hype_scores:
+          type: object
+          required:
+            - average
+            - weekly
+            - monthly
+          properties:
+            average:
+              type: number
+              format: float
+              description: Average daily star gain (all-time)
+              example: 5.2
+            weekly:
+              type: number
+              format: float
+              description: Stars gained in last 7 days
+              example: 45.2
+            monthly:
+              type: number
+              format: float
+              description: Stars gained in last 30 days
+              example: 182.5
+
+        repository_metadata:
+          type: object
+          properties:
+            primary_language:
+              type: string
+              nullable: true
+              example: "Python"
+            description:
+              type: string
+              nullable: true
+            created_at:
+              type: string
+              format: date-time
+              nullable: true
+            updated_at:
+              type: string
+              format: date-time
+              nullable: true
+
+        tracking_metadata:
+          type: object
+          required:
+            - start_date
+            - last_tracked_at
+            - enabled
+          properties:
+            start_date:
+              type: string
+              format: date
+              example: "2024-01-01"
+            last_tracked_at:
+              type: string
+              format: date-time
+              example: "2024-10-08T02:00:00Z"
+            enabled:
+              type: boolean
+              example: true
+
+        star_history:
+          type: array
+          description: Daily star count snapshots
+          items:
+            type: object
+            required:
+              - date
+              - stars
+            properties:
+              date:
+                type: string
+                format: date
+              stars:
+                type: integer
+              forks:
+                type: integer
+              watchers:
+                type: integer
+              stars_gained_since_yesterday:
+                type: integer
+                nullable: true
+          example:
+            - date: "2024-10-08"
+              stars: 15234
+              forks: 3421
+              watchers: 542
+              stars_gained_since_yesterday: 8
+            - date: "2024-10-07"
+              stars: 15226
+              forks: 3420
+              watchers: 542
+              stars_gained_since_yesterday: 12
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: "ValidationError"
+        message:
+          type: string
+          example: "Invalid query parameter: year must be between 1900 and 2100"
+        details:
+          type: object
+          nullable: true
+          additionalProperties: true

@@ -1,0 +1,72 @@
+[build-system]
+requires = [
+    "setuptools",
+    "setuptools-scm"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sotapapers"
+description = "AI-based research assistant discovering up-to-date, state-of-the-art papers"
+version = "0.0.1"
+authors = [
+    { name = "Eddie Seo", email = "ca1773130n@gmail.com" }
+]
+maintainers = [
+    { name = "Eddie Seo", email = "ca1773130n@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "semanticscholar",
+    "webdriver_manager",
+    "python_json_config",
+    "pathlib",
+    "joblib",
+    "psutil",
+    "pandas",
+    "numba",
+    "numpy",
+    "scikit-image",
+    "scipy",
+    "icecream",
+    "loguru",
+    "tqdm",
+    "nest-asyncio",
+    "openai",
+    "llama_parse",
+    "llama_index",
+    "gmft",
+    "spacy",
+    "arxiv",
+    "scholarly",
+    "regex",
+    "fastapi",
+    "uvicorn",
+    "sqlalchemy",
+    "python-dotenv",
+    "pydantic",
+    "pydantic_settings",
+    "streamlit",
+    "passlib",
+    "bcrypt",
+    "PyMuPDF",
+    "torch==2.6.0",
+    "pyjson5",
+    "demjson3",
+    "charset-normalizer",
+    "streamlit>=1.42.0",
+    "Authlib>=1.3.2",
+    "httpx==0.27.2",
+    "bcrypt==3.2.2",
+    "undetected-chromedriver"
+]
+[tool.setuptools.package-data]
+sotapapers = [
+    "assets/*.*",
+    "configs/*.json"
+]
+
+[tool.setuptools.packages.find]
+include = ["sotapapers*"]
+exclude = ["scripts*", "static*"]

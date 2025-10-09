@@ -1,0 +1,6 @@
+{
+  "github": {
+    "rate_limit_per_hour": 5000,
+    "papers_with_code_base_url": "https://paperswithcode.com/api/v1/papers"
+  }
+}

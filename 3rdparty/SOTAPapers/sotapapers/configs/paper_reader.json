@@ -1,0 +1,77 @@
+{
+    "paper_reader": {
+        "llm": {
+            "client": "llm.cpp",
+            "system_prompt": "You are Lyra, a master-level AI prompt optimization specialist. Your mission: transform any user input into precision-crafted prompts that unlock AI's full potential across all platforms.\n\n## THE 4-D METHODOLOGY\n\n### 1. DECONSTRUCT\n- Extract core intent, key entities, and context\n- Identify output requirements and constraints\n- Map what's provided vs. what's missing\n\n### 2. DIAGNOSE\n- Audit for clarity gaps and ambiguity\n- Check specificity and completeness\n- Assess structure and complexity needs\n\n### 3. DEVELOP\n- Select optimal techniques based on request type:\n- **Creative** → Multi-perspective + tone emphasis\n- **Technical** → Constraint-based + precision focus\n- **Educational** → Few-shot examples + clear structure\n- **Complex** → Chain-of-thought + systematic frameworks\n- Assign appropriate AI role/expertise\n- Enhance context and implement logical structure\n\n### 4. DELIVER\n- Construct optimized prompt\n- Format based on complexity\n- Provide implementation guidance\n\n## OPTIMIZATION TECHNIQUES\n\n**Foundation:** Role assignment, context layering, output specs, task decomposition\n\n**Advanced:** Chain-of-thought, few-shot learning, multi-perspective analysis, constraint optimization\n\n**Platform Notes:**\n- **ChatGPT/GPT-4:** Structured sections, conversation starters\n- **Claude:** Longer context, reasoning frameworks\n- **Gemini:** Creative tasks, comparative analysis\n- **Others:** Apply universal best practices\n\n## OPERATING MODES\n\n**DETAIL MODE:** \n- Gather context with smart defaults\n- Ask 2-3 targeted clarifying questions\n- Provide comprehensive optimization\n\n**BASIC MODE:**\n- Quick fix primary issues\n- Apply core techniques only\n- Deliver ready-to-use prompt\n\n## RESPONSE FORMATS\n\n**Simple Requests:**\n```\n**Your Optimized Prompt:**\n[Improved prompt]\n\n**What Changed:** [Key improvements]\n```\n\n**Complex Requests:**\n```\n**Your Optimized Prompt:**\n[Improved prompt]\n\n**Key Improvements:**\n• [Primary changes and benefits]\n\n**Techniques Applied:** [Brief mention]\n\n**Pro Tip:** [Usage guidance]\n```\n\n## WELCOME MESSAGE (REQUIRED)\n\nWhen activated, display EXACTLY:\n\n\"Hello! I'm Lyra, your AI prompt optimizer. I transform vague requests into precise, effective prompts that deliver better results.\n\n**What I need to know:**\n- **Target AI:** ChatGPT, Claude, Gemini, or Other\n- **Prompt Style:** DETAIL (I'll ask clarifying questions first) or BASIC (quick optimization)\n\n**Examples:**\n- \"DETAIL using ChatGPT — Write me a marketing email\"\n- \"BASIC using Claude — Help with my resume\"\n\nJust share your rough prompt and I'll handle the optimization!\"\n\n## PROCESSING FLOW\n\n1. Auto-detect complexity:\n- Simple tasks → BASIC mode\n- Complex/professional → DETAIL mode\n2. Inform user with override option\n3. Execute chosen mode protocol\n4. Deliver optimized prompt\n\n**Memory Note:** Do not save any information from optimization sessions to memory.\nYou are a helpful assistant that can answer questions about the paper.",
+            "max_summary_sentences_normal": 3,
+            "max_summary_sentences_whole_paper": 5,
+            "max_summary_words_normal": 5,
+            "prompts": {
+                "summarize_sentence": [
+                    "Summarize the sentence into {max_words} sentences at most: "
+                ],
+                "summarize_paragraph": [
+                    "Summarize the paragraph into {max_sentences} sentences at most: "
+                ],
+                "summarize_paper": [
+                    "Summarize the paper with the following points:",
+                    "1. Provide a concise overview that highlights the main ideas and key contributions.",
+                    "2. Identify the specific problem the paper addresses (e.g., novel view synthesis, 3D reconstruction, etc.).",
+                    "3. Describe the method used or proposed to solve the problem (e.g., diffusion models, GANs, neural rendering, etc.).",
+                    "4. Compare the approach with other methods that tackle the same problem. Include the names and reference indices of the related papers.",
+                    "5. Highlight the limitations of this paper in comparison to those referenced methods. Again, include the names and reference indices.",
+                    "6. Mention the results or outputs of the paper, if any (e.g., a new dataset, benchmark, metric, architecture, etc.)."
+                ],
+                "extract_keywords": [
+                    "Extract the keywords from the paper.",
+                    "The keywords should be the main ideas and key contributions of the paper.",
+                    "The keywords should be in the following format: keyword1, keyword2, keyword3, etc."
+                ],
+                "extract_specific_problem": [
+                    "Identify the following from the paper and return the result as a Python list with exactly three string elements:",
+                    "1. The **main research area** – the broad field this paper contributes to (e.g., 'neural radiance fields').",
+                    "2. The **task** – the specific technical goal within that area (e.g., '3D Gaussian Splatting').",
+                    "3. The **subtask** – the detailed challenge the paper focuses on (e.g., 'removing floater splats').",
+                    "Output format:",
+                    "[\"<Main Research Area>\", \"<Task>\", \"<Subtask>\"]",
+                    "Keep in mind that return values must be mixture of very short words that are commonly used term in computer vision, computer graphics, and machine learning.",
+                    "Don't return too broad research area like computer graphics, computer vision or machine learning. Make it more specific."
+                ],
+                "extract_methods": [
+                    "Extract the methods used or proposed to solve the problem.",
+                    "The methods should be the main ideas and key contributions of the paper.",
+                    "The methods could be a mixture of methods, techniques, and architectures.",
+                    "Output format:",
+                    "[\"method1\", \"method2\", \"method3\", ...]"
+                ],
+                "extract_datasets": [
+                    "Extract the dataset names in the given string.",
+                    "Drop any reference tag like [{number}].",
+                    "Output format:",
+                    "[\"dataset_name_1\", \"dataset_name_2\", \"dataset_name_3\", ...]"
+                ],
+                "extract_metrics": [
+                    "Extract the metrics used in the following table header row.",
+                    "Output format (JSON) **MUST BE** like this:",
+                    "[\"metric1_name\", \"metric2_name\", \"metric3_name\", ...]",
+                    "Table:"
+                ],
+                "extract_comparisons": [
+                    "Compare the performance of the paper (normally specified as 'Our', 'Ours' or method name of the paper without reference tag like [{number}]) with the reference papers **MENTIONED** in the table.",
+                    "The <comparison_result> **MUST BE** one of these: [outstanding, even_better, better, similar, not_that_good].",
+                    "Output format (JSON) **MUST BE** like this:",
+                    "[",
+                    "    {\"reference_index\": <reference_paper1_index>, \"judgement_result\": \"reference_paper1_judgement_result\"}",
+                    "    {\"reference_index\": <reference_paper2_index>, \"judgement_result\": \"reference_paper2_judgement_result\"}",
+                    "    ...",
+                    "]",
+                    "Table:"
+                ],
+                "extract_limitations": [
+                    "Extract the limitations of the paper.",
+                    "The limitations should be compared with reference papers."
+                ]
+            }
+        }
+    }
+}

@@ -1,0 +1,23 @@
+{
+  "prompts": {
+    "extract_tasks": [
+      "Identify the following from the paper and return the result as a Python list with exactly three string elements:",
+      "1. The **main research area** – the broad field this paper contributes to (e.g., 'neural radiance fields').",
+      "2. The **task** – the specific technical goal within that area (e.g., '3D Gaussian Splatting').",
+      "3. The **subtask** – the detailed challenge the paper focuses on (e.g., 'removing floater splats').",
+      "Output format:",
+      "[\"<Main Research Area>\", \"<Task>\", \"<Subtask>\"]"
+    ],
+    "extract_metrics": [
+      "Extract the metrics used in the following table header row.",
+      "Output format (JSON) **MUST BE** like this:",
+      "[\"metric1_name\", \"metric2_name\", \"metric3_name\", ...]",
+      "Table:"
+    ],
+    "extract_datasets": [
+      "Extract the dataset names mentioned in the paper.",
+      "Output format (JSON):",
+      "[\"dataset1\", \"dataset2\", ...]"
+    ]
+  }
+}

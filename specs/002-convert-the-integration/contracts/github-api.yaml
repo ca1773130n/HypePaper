@@ -1,0 +1,708 @@
+openapi: 3.0.3
+info:
+  title: HypePaper GitHub API
+  version: 1.0.0
+  description: |
+    GitHub repository tracking and hype metrics for HypePaper.
+
+    Supports:
+    - Repository metrics tracking (stars, forks, watchers)
+    - Time-series star history
+    - Hype score calculation (velocity metrics)
+    - Trending papers by GitHub activity
+
+  contact:
+    name: HypePaper API Support
+    email: support@hypepaper.dev
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://api.hypepaper.dev/v1
+    description: Production server
+
+tags:
+  - name: github
+    description: GitHub repository tracking operations
+
+paths:
+  /github/metrics/{paper_id}:
+    get:
+      summary: Get GitHub metrics for paper
+      description: |
+        Retrieve comprehensive GitHub metrics including time-series star history.
+
+        Returns:
+        - Current repository stats
+        - Hype scores (average, weekly, monthly)
+        - Historical star snapshots
+        - Repository metadata
+
+      operationId: getGitHubMetrics
+      tags:
+        - github
+      parameters:
+        - name: paper_id
+          in: path
+          required: true
+          description: Paper UUID or ArXiv ID
+          schema:
+            type: string
+            example: "550e8400-e29b-41d4-a716-446655440000"
+
+        - name: history_days
+          in: query
+          description: Number of days of star history to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            default: 90
+
+        - name: aggregate
+          in: query
+          description: Aggregate star history by period
+          required: false
+          schema:
+            type: string
+            enum: [daily, weekly, monthly]
+            default: daily
+
+      responses:
+        '200':
+          description: GitHub metrics found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitHubMetrics'
+              examples:
+                metrics_example:
+                  summary: GitHub metrics with 90-day history
+                  value:
+                    paper_id: "550e8400-e29b-41d4-a716-446655440000"
+                    paper_title: "Attention Is All You Need"
+                    repository:
+                      url: "https://github.com/tensorflow/tensor2tensor"
+                      owner: "tensorflow"
+                      name: "tensor2tensor"
+                      description: "Library of deep learning models and datasets"
+                      primary_language: "Python"
+                      created_at: "2017-06-13T10:00:00Z"
+                      updated_at: "2024-10-08T14:00:00Z"
+                    current_stats:
+                      stars: 15234
+                      forks: 3421
+                      watchers: 542
+                      last_updated: "2024-10-08T02:00:00Z"
+                    hype_scores:
+                      average: 5.2
+                      weekly: 45.2
+                      monthly: 182.5
+                    tracking:
+                      start_date: "2024-01-01"
+                      last_tracked: "2024-10-08T02:00:00Z"
+                      total_snapshots: 281
+                      enabled: true
+                    star_history:
+                      - date: "2024-10-08"
+                        stars: 15234
+                        delta: 8
+                      - date: "2024-10-07"
+                        stars: 15226
+                        delta: 12
+                      - date: "2024-10-06"
+                        stars: 15214
+                        delta: 5
+
+        '404':
+          description: Paper not found or no GitHub repository
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /github/trending:
+    get:
+      summary: Get trending papers by GitHub activity
+      description: |
+        Retrieve papers sorted by GitHub hype scores.
+
+        Useful for discovering:
+        - Papers with rapidly growing repositories
+        - Most starred papers in a time period
+        - Papers with consistent growth velocity
+
+      operationId: getTrendingPapers
+      tags:
+        - github
+      parameters:
+        - name: sort_by
+          in: query
+          description: Hype metric to sort by
+          required: false
+          schema:
+            type: string
+            enum:
+              - weekly_hype
+              - monthly_hype
+              - average_hype
+              - total_stars
+            default: weekly_hype
+
+        - name: period
+          in: query
+          description: Time period for trending calculation
+          required: false
+          schema:
+            type: string
+            enum: [day, week, month, quarter, year, all_time]
+            default: week
+
+        - name: min_stars
+          in: query
+          description: Minimum current stars
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 100
+
+        - name: primary_task
+          in: query
+          description: Filter by research task
+          required: false
+          schema:
+            type: string
+
+        - name: venue
+          in: query
+          description: Filter by venue/conference
+          required: false
+          schema:
+            type: string
+
+        - name: year
+          in: query
+          description: Filter by publication year
+          required: false
+          schema:
+            type: integer
+
+        - name: language
+          in: query
+          description: Filter by repository primary language
+          required: false
+          schema:
+            type: string
+            example: Python
+
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+
+        - name: page_size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+
+      responses:
+        '200':
+          description: Trending papers retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - papers
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  papers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TrendingPaper'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  page_size:
+                    type: integer
+                  period:
+                    type: string
+                  sort_by:
+                    type: string
+
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /github/search:
+    post:
+      summary: Search GitHub for paper repositories
+      description: |
+        Search GitHub for repositories matching paper metadata.
+
+        Used by background jobs to discover repositories for papers.
+
+        Matches repositories based on:
+        - Paper title
+        - Author names
+        - Paper mentions in README
+
+      operationId: searchGitHubForPaper
+      tags:
+        - github
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - paper_id
+              properties:
+                paper_id:
+                  type: string
+                  format: uuid
+                search_strategy:
+                  type: string
+                  enum: [title_only, title_and_authors, full_metadata]
+                  default: title_and_authors
+                max_results:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  default: 10
+
+      responses:
+        '200':
+          description: Search completed
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - paper_id
+                  - candidates
+                properties:
+                  paper_id:
+                    type: string
+                    format: uuid
+                  paper_title:
+                    type: string
+                  candidates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RepositoryCandidate'
+                  search_metadata:
+                    type: object
+                    properties:
+                      strategy_used:
+                        type: string
+                      queries_executed:
+                        type: integer
+                      total_results:
+                        type: integer
+
+        '404':
+          description: Paper not found
+
+        '429':
+          description: GitHub API rate limit exceeded
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - error
+                  - message
+                  - retry_after
+                properties:
+                  error:
+                    type: string
+                    example: "RateLimitExceeded"
+                  message:
+                    type: string
+                    example: "GitHub API rate limit exceeded"
+                  retry_after:
+                    type: integer
+                    description: Seconds until rate limit resets
+                    example: 3600
+
+  /github/metrics/{paper_id}/update:
+    post:
+      summary: Trigger GitHub metrics update
+      description: |
+        Manually trigger GitHub metrics update for a paper.
+
+        Normally updates happen via daily scheduled job.
+        This endpoint allows on-demand updates.
+
+      operationId: updateGitHubMetrics
+      tags:
+        - github
+      parameters:
+        - name: paper_id
+          in: path
+          required: true
+          schema:
+            type: string
+
+      responses:
+        '202':
+          description: Update job queued
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - job_id
+                  - status
+                properties:
+                  job_id:
+                    type: string
+                    example: "update-github-550e8400-e29b-41d4-a716-446655440000"
+                  status:
+                    type: string
+                    enum: [queued, processing]
+                  estimated_completion:
+                    type: string
+                    format: date-time
+
+        '404':
+          description: Paper not found or no GitHub repository
+
+        '429':
+          description: Too many update requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    GitHubMetrics:
+      type: object
+      required:
+        - paper_id
+        - paper_title
+        - repository
+        - current_stats
+        - hype_scores
+        - tracking
+      properties:
+        paper_id:
+          type: string
+          format: uuid
+
+        paper_title:
+          type: string
+
+        repository:
+          type: object
+          required:
+            - url
+            - owner
+            - name
+          properties:
+            url:
+              type: string
+              format: uri
+              example: "https://github.com/tensorflow/tensor2tensor"
+            owner:
+              type: string
+              example: "tensorflow"
+            name:
+              type: string
+              example: "tensor2tensor"
+            description:
+              type: string
+              nullable: true
+            primary_language:
+              type: string
+              nullable: true
+              example: "Python"
+            created_at:
+              type: string
+              format: date-time
+              nullable: true
+            updated_at:
+              type: string
+              format: date-time
+              nullable: true
+
+        current_stats:
+          type: object
+          required:
+            - stars
+            - forks
+            - watchers
+          properties:
+            stars:
+              type: integer
+              example: 15234
+            forks:
+              type: integer
+              example: 3421
+            watchers:
+              type: integer
+              example: 542
+            last_updated:
+              type: string
+              format: date-time
+
+        hype_scores:
+          type: object
+          required:
+            - average
+            - weekly
+            - monthly
+          properties:
+            average:
+              type: number
+              format: float
+              description: Average daily star gain since tracking started
+              example: 5.2
+            weekly:
+              type: number
+              format: float
+              description: Stars gained in last 7 days
+              example: 45.2
+            monthly:
+              type: number
+              format: float
+              description: Stars gained in last 30 days
+              example: 182.5
+
+        tracking:
+          type: object
+          required:
+            - start_date
+            - last_tracked
+            - enabled
+          properties:
+            start_date:
+              type: string
+              format: date
+              example: "2024-01-01"
+            last_tracked:
+              type: string
+              format: date-time
+              example: "2024-10-08T02:00:00Z"
+            total_snapshots:
+              type: integer
+              description: Total number of daily snapshots
+              example: 281
+            enabled:
+              type: boolean
+              example: true
+
+        star_history:
+          type: array
+          description: Daily star count snapshots
+          items:
+            type: object
+            required:
+              - date
+              - stars
+            properties:
+              date:
+                type: string
+                format: date
+              stars:
+                type: integer
+              forks:
+                type: integer
+                nullable: true
+              watchers:
+                type: integer
+                nullable: true
+              delta:
+                type: integer
+                nullable: true
+                description: Stars gained since previous day
+
+    TrendingPaper:
+      type: object
+      required:
+        - paper_id
+        - title
+        - authors
+        - repository_url
+        - current_stars
+        - hype_score
+      properties:
+        paper_id:
+          type: string
+          format: uuid
+
+        arxiv_id:
+          type: string
+          nullable: true
+
+        title:
+          type: string
+
+        authors:
+          type: array
+          items:
+            type: string
+
+        year:
+          type: integer
+          nullable: true
+
+        venue:
+          type: string
+          nullable: true
+
+        primary_task:
+          type: string
+          nullable: true
+
+        repository_url:
+          type: string
+          format: uri
+
+        repository_name:
+          type: string
+
+        repository_owner:
+          type: string
+
+        primary_language:
+          type: string
+          nullable: true
+
+        current_stars:
+          type: integer
+          example: 15234
+
+        hype_score:
+          type: number
+          format: float
+          description: Score based on sort_by parameter
+          example: 45.2
+
+        hype_metadata:
+          type: object
+          properties:
+            average_hype:
+              type: number
+              format: float
+            weekly_hype:
+              type: number
+              format: float
+            monthly_hype:
+              type: number
+              format: float
+
+        trending_rank:
+          type: integer
+          description: Position in trending list (1-indexed)
+          example: 1
+
+        citations_count:
+          type: integer
+          nullable: true
+
+    RepositoryCandidate:
+      type: object
+      required:
+        - repository_url
+        - owner
+        - name
+        - stars
+        - relevance_score
+      properties:
+        repository_url:
+          type: string
+          format: uri
+          example: "https://github.com/tensorflow/tensor2tensor"
+
+        owner:
+          type: string
+          example: "tensorflow"
+
+        name:
+          type: string
+          example: "tensor2tensor"
+
+        description:
+          type: string
+          nullable: true
+
+        stars:
+          type: integer
+          example: 15234
+
+        forks:
+          type: integer
+          example: 3421
+
+        primary_language:
+          type: string
+          nullable: true
+          example: "Python"
+
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+
+        relevance_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Relevance to paper (0-1)
+          example: 0.87
+
+        match_reasons:
+          type: array
+          description: Why this repository was matched
+          items:
+            type: string
+          example:
+            - "Title contains paper keywords"
+            - "Author mentioned in README"
+            - "Paper linked in description"
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          nullable: true

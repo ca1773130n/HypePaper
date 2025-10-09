@@ -1,0 +1,6 @@
+{
+    "streamlit_app": {
+        "title": "SOTA Papers",
+        "port": 10003
+    }
+}

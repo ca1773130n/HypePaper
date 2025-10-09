@@ -1,17 +1,25 @@
-"""Database models for HypePaper.
+"""SQLAlchemy models for HypePaper."""
 
-Exports all SQLAlchemy models and the declarative base.
-"""
 from .base import Base
-from .metric_snapshot import MetricSnapshot
 from .paper import Paper
-from .paper_topic_match import PaperTopicMatch
-from .topic import Topic
 
-__all__ = [
-    "Base",
-    "Paper",
-    "Topic",
-    "MetricSnapshot",
-    "PaperTopicMatch",
-]
+# Legacy models (if they exist)
+try:
+    from .hype_score import HypeScore
+    from .metric_snapshot import MetricSnapshot
+    from .paper_topic_match import PaperTopicMatch
+    from .topic import Topic
+
+    __all__ = [
+        "Base",
+        "Paper",
+        "Topic",
+        "PaperTopicMatch",
+        "MetricSnapshot",
+        "HypeScore",
+    ]
+except ImportError:
+    __all__ = [
+        "Base",
+        "Paper",
+    ]

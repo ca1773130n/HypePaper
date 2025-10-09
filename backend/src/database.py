@@ -1,18 +1,27 @@
 """Database configuration and session management."""
+import os
 from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from .models import Base
 
 # Database URL (will be configured via environment variable)
-DATABASE_URL = "postgresql+asyncpg://hypepaper:hypepaper_dev@localhost:5432/hypepaper"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://hypepaper:hypepaper_dev@localhost:5432/hypepaper")
 
-# Create async engine
+# Create async engine with connection pooling optimizations
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,  # Set to True for SQL query logging
     future=True,
+    pool_size=20,  # Number of connections to maintain
+    max_overflow=10,  # Additional connections beyond pool_size
+    pool_pre_ping=True,  # Verify connections before using
+    pool_recycle=3600,  # Recycle connections after 1 hour
+    pool_timeout=30,  # Timeout for getting connection from pool
+    # Use NullPool for testing environments
+    poolclass=NullPool if os.getenv("TESTING") == "1" else None,
 )
 
 # Create async session factory
