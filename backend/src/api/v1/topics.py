@@ -116,8 +116,26 @@ async def create_topic(
     await db.commit()
     await db.refresh(topic)
 
-    # Trigger topic matching job
-    celery_app.send_task("match_topics.match_single_topic", args=[str(topic.id)])
+    # Match papers to this new topic immediately
+    from ...services import TopicMatchingService
+    matching_service = TopicMatchingService(db)
+
+    # Get all papers
+    papers_result = await db.execute(select(Paper))
+    papers = papers_result.scalars().all()
+
+    # Match each paper against this topic
+    matched_count = 0
+    for paper in papers:
+        try:
+            match = await matching_service.match_paper_to_topic(paper, topic)
+            if match:
+                matched_count += 1
+        except Exception as e:
+            print(f"Error matching paper {paper.id} to topic {topic.id}: {e}")
+            continue
+
+    print(f"Matched {matched_count} papers to new topic '{topic.name}'")
 
     return TopicResponse(
         id=str(topic.id),
@@ -127,7 +145,7 @@ async def create_topic(
         is_system=False,
         user_id=str(user_id),
         created_at=topic.created_at.isoformat(),
-        paper_count=0
+        paper_count=matched_count
     )
 
 

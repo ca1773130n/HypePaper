@@ -29,6 +29,8 @@ class CrawlJobRequest(BaseModel):
     arxiv_keywords: Optional[str] = None
     arxiv_category: Optional[str] = None
     arxiv_max_results: int = Field(default=100, ge=1, le=1000)
+    crawl_references: bool = Field(default=False, description="Extract and crawl references recursively")
+    reference_depth: int = Field(default=1, ge=1, le=3, description="Depth for reference crawling (1-3)")
 
     # Conference-specific
     conference_name: Optional[str] = None
@@ -37,6 +39,9 @@ class CrawlJobRequest(BaseModel):
     # Citation-specific
     seed_paper_ids: Optional[list[str]] = None
     citation_depth: int = Field(default=1, ge=1, le=3)
+
+    # Periodic crawling
+    period: Optional[str] = Field(None, description="Crawling period: daily, weekly, monthly", pattern="^(daily|weekly|monthly)?$")
 
     # Common
     priority: str = Field(default="normal", pattern="^(low|normal|high)$")
@@ -118,6 +123,150 @@ class JobSummary(BaseModel):
     duration_seconds: Optional[int] = None
     progress_percentage: Optional[float] = None
     results_summary: Optional[str] = None
+
+
+@router.post("/crawl-sync", response_model=dict, status_code=202)
+async def trigger_crawl_sync(
+    request: CrawlJobRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Crawl papers synchronously for simple crawls, async for reference crawling.
+
+    If reference crawling is enabled, returns job ID immediately and processes in background.
+    Otherwise processes synchronously and returns results.
+    """
+    if request.source != "arxiv":
+        raise HTTPException(
+            status_code=400,
+            detail="Only arXiv source is supported"
+        )
+
+    # If reference crawling enabled, use async background processing
+    if request.crawl_references:
+        job_id = f"crawl-refs-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}"
+
+        # Import background task
+        import asyncio
+        from ...jobs.reference_crawler import crawl_references_background
+
+        # Start background task
+        asyncio.create_task(crawl_references_background(
+            job_id=job_id,
+            arxiv_keywords=request.arxiv_keywords,
+            arxiv_max_results=request.arxiv_max_results,
+            reference_depth=request.reference_depth,
+            period=request.period
+        ))
+
+        period_msg = f" (repeating {request.period})" if request.period else ""
+        return {
+            "status": "processing",
+            "job_id": job_id,
+            "message": f"Reference crawling started with depth {request.reference_depth}{period_msg}. This may take several minutes."
+        }
+
+    if not request.arxiv_keywords and not request.arxiv_category:
+        raise HTTPException(
+            status_code=400,
+            detail="Either arxiv_keywords or arxiv_category must be provided"
+        )
+
+    # Import services
+    from ...services import AsyncArxivService, AsyncGitHubService
+    from ...models import Paper, GitHubMetrics
+    from sqlalchemy import select
+    import uuid
+
+    arxiv_service = AsyncArxivService()
+    github_service = AsyncGitHubService()
+
+    # Search arXiv
+    papers_data = await arxiv_service.search_by_keywords(
+        keywords=request.arxiv_keywords,
+        max_results=request.arxiv_max_results
+    )
+
+    # Store papers in database with enrichment
+    stored_papers = []
+    for paper_data in papers_data:
+        # Check if paper already exists
+        existing = await db.execute(
+            select(Paper).where(Paper.arxiv_id == paper_data.get("arxiv_id"))
+        )
+        if existing.scalar_one_or_none():
+            continue
+
+        # Create new paper
+        from datetime import datetime as dt
+        pub_date = paper_data.get("published_date")
+        if isinstance(pub_date, str):
+            pub_date = dt.fromisoformat(pub_date.replace('Z', '+00:00')).date()
+        elif isinstance(pub_date, dt):
+            pub_date = pub_date.date()
+
+        paper = Paper(
+            id=uuid.uuid4(),
+            arxiv_id=paper_data.get("arxiv_id"),
+            title=paper_data.get("title"),
+            authors=paper_data.get("authors", []),
+            abstract=paper_data.get("abstract", ""),
+            published_date=pub_date,
+            pdf_url=paper_data.get("pdf_url"),
+            arxiv_url=paper_data.get("arxiv_url"),
+        )
+        db.add(paper)
+        await db.flush()  # Get paper ID
+
+        # Enrich with GitHub data (skip if no token)
+        if github_service.api_token:
+            try:
+                github_repo = await github_service.search_repository_by_paper(
+                    title=paper.title,
+                    arxiv_id=paper.arxiv_id
+                )
+
+                if github_repo:
+                    paper.github_url = github_repo.html_url
+
+                    # Create GitHub metrics
+                    github_metrics = GitHubMetrics(
+                        paper_id=paper.id,
+                        repository_url=github_repo.html_url,
+                        repository_owner=github_repo.owner,
+                        repository_name=github_repo.name,
+                        star_count=github_repo.stars,
+                        fork_count=github_repo.forks,
+                        watcher_count=github_repo.watchers,
+                        open_issues_count=github_repo.open_issues,
+                        created_at=github_repo.created_at,
+                        updated_at=github_repo.updated_at,
+                        pushed_at=github_repo.pushed_at,
+                        description=github_repo.description,
+                        homepage_url=github_repo.homepage,
+                        language=github_repo.language,
+                        topics=github_repo.topics or []
+                    )
+                    db.add(github_metrics)
+            except Exception as e:
+                print(f"GitHub enrichment failed for {paper.title}: {e}")
+
+        stored_papers.append({
+            "id": str(paper.id),
+            "title": paper.title,
+            "authors": paper.authors,
+            "published_date": str(paper.published_date) if paper.published_date else None,
+            "github_url": paper.github_url,
+        })
+
+    await db.commit()
+
+    return {
+        "status": "completed",
+        "papers_crawled": len(papers_data),
+        "papers_stored": len(stored_papers),
+        "references_crawled": 0,
+        "papers": stored_papers
+    }
 
 
 @router.post("/crawl", response_model=JobResponse, status_code=202)
@@ -274,6 +423,24 @@ async def trigger_enrich(
             status_code=500,
             detail=f"Failed to queue enrichment job: {str(e)}"
         )
+
+
+@router.get("/crawler-jobs")
+async def list_crawler_jobs():
+    """Get list of active reference crawler jobs."""
+    from ...jobs.reference_crawler import get_active_jobs
+
+    jobs = await get_active_jobs()
+    return {"jobs": jobs}
+
+
+@router.get("/crawler-logs/{job_id}")
+async def get_crawler_logs(job_id: str):
+    """Get logs for a specific crawler job."""
+    from ...jobs.reference_crawler import get_job_logs
+
+    logs = await get_job_logs(job_id)
+    return {"logs": logs}
 
 
 @router.get("/{job_id}", response_model=JobStatus)

@@ -15,6 +15,8 @@ from .github_metrics import GitHubMetrics, GitHubStarSnapshot
 from .pdf_content import PDFContent
 from .llm_extraction import LLMExtraction, ExtractionType, VerificationStatus
 from .admin_task_log import AdminTaskLog
+from .crawler_job import CrawlerJob
+from .citation_snapshot import CitationSnapshot
 
 __all__ = [
     "Base",
@@ -32,4 +34,6 @@ __all__ = [
     "ExtractionType",
     "VerificationStatus",
     "AdminTaskLog",
+    "CrawlerJob",
+    "CitationSnapshot",
 ]

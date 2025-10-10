@@ -7,8 +7,8 @@ from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, Float, ForeignKey, Index, String, Text, text
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy import CheckConstraint, Float, ForeignKey, Index, Integer, String, Text, text
+from sqlalchemy.dialects.postgresql import ARRAY, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
@@ -21,25 +21,53 @@ class PaperReference(Base):
     """Citation relationship between papers (bidirectional).
 
     Represents: Paper A cites Paper B
-    - paper_id: Source paper (A)
-    - reference_id: Cited paper (B)
+    - source_paper_id: Source paper (A)
+    - target_paper_id: Cited paper (B)
     """
 
     __tablename__ = "paper_references"
 
-    # Composite primary key
-    paper_id: Mapped[UUID] = mapped_column(
+    # Primary key
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+        comment="Primary key"
+    )
+
+    # Foreign keys
+    source_paper_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True),
         ForeignKey("papers.id", ondelete="CASCADE"),
-        primary_key=True,
+        nullable=False,
+        index=True,
         comment="Paper containing the citation"
     )
 
-    reference_id: Mapped[UUID] = mapped_column(
+    target_paper_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True),
         ForeignKey("papers.id", ondelete="CASCADE"),
-        primary_key=True,
+        nullable=False,
+        index=True,
         comment="Paper being cited"
+    )
+
+    # Target paper metadata (denormalized for quick lookups)
+    target_title: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True,
+        comment="Title of cited paper"
+    )
+
+    target_authors: Mapped[Optional[list]] = mapped_column(
+        ARRAY(String),
+        nullable=True,
+        comment="Authors of cited paper"
+    )
+
+    target_year: Mapped[Optional[int]] = mapped_column(
+        nullable=True,
+        comment="Publication year of cited paper"
     )
 
     # Original citation text from PDF
@@ -74,31 +102,31 @@ class PaperReference(Base):
     )
 
     # Relationships
-    paper: Mapped["Paper"] = relationship(
+    source_paper: Mapped["Paper"] = relationship(
         "Paper",
-        foreign_keys=[paper_id],
+        foreign_keys=[source_paper_id],
         back_populates="citations_out"
     )
 
-    referenced_paper: Mapped["Paper"] = relationship(
+    target_paper: Mapped["Paper"] = relationship(
         "Paper",
-        foreign_keys=[reference_id],
+        foreign_keys=[target_paper_id],
         back_populates="citations_in"
     )
 
     __table_args__ = (
         CheckConstraint(
-            "paper_id != reference_id",
+            "source_paper_id != target_paper_id",
             name="no_self_citation"
         ),
         CheckConstraint(
             "match_score >= 0 AND match_score <= 100 OR match_score IS NULL",
             name="match_score_valid_range"
         ),
-        Index("idx_citations_paper", "paper_id"),
-        Index("idx_citations_reference", "reference_id"),
+        Index("idx_citations_source", "source_paper_id"),
+        Index("idx_citations_target", "target_paper_id"),
         Index("idx_citations_match_score", "match_score", postgresql_ops={"match_score": "DESC"}),
     )
 
     def __repr__(self) -> str:
-        return f"<Citation({self.paper_id} -> {self.reference_id}, score={self.match_score})>"
+        return f"<Citation({self.source_paper_id} -> {self.target_paper_id}, score={self.match_score})>"

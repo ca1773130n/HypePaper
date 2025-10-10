@@ -221,6 +221,15 @@ class Paper(Base):
         comment="Latest tracking snapshot: {date: str, stars: int}"
     )
 
+    # Citation tracking
+    citation_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default=text("0"),
+        comment="Latest citation count from Google Scholar"
+    )
+
     # ============================================================
     # RELATIONSHIPS
     # ============================================================
@@ -246,16 +255,16 @@ class Paper(Base):
 
     citations_out: Mapped[list["PaperReference"]] = relationship(
         "PaperReference",
-        foreign_keys="PaperReference.paper_id",
-        back_populates="paper",
+        foreign_keys="PaperReference.source_paper_id",
+        back_populates="source_paper",
         cascade="all, delete-orphan",
         doc="Papers cited by this paper"
     )
 
     citations_in: Mapped[list["PaperReference"]] = relationship(
         "PaperReference",
-        foreign_keys="PaperReference.reference_id",
-        back_populates="referenced_paper",
+        foreign_keys="PaperReference.target_paper_id",
+        back_populates="target_paper",
         cascade="all, delete-orphan",
         doc="Papers citing this paper"
     )
@@ -278,6 +287,13 @@ class Paper(Base):
         back_populates="paper",
         uselist=False,
         cascade="all, delete-orphan"
+    )
+
+    citation_snapshots: Mapped[list["CitationSnapshot"]] = relationship(
+        "CitationSnapshot",
+        back_populates="paper",
+        cascade="all, delete-orphan",
+        doc="Historical citation count snapshots"
     )
 
     # ============================================================

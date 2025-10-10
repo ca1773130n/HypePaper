@@ -1,5 +1,5 @@
 """Enhanced paper endpoints with star history, hype scores, and PDF download."""
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...database import get_db
-from ...models import Paper, PaperReference, GitHubStarSnapshot
+from ...models import Paper, PaperReference, GitHubStarSnapshot, CitationSnapshot
 from ...services.pdf_service import PDFService
 
 router = APIRouter(prefix="/papers", tags=["Papers Enhanced"])
@@ -20,6 +20,12 @@ class StarHistoryPoint(BaseModel):
     date: str
     stars: int
     citations: int = 0
+
+
+class CitationHistoryPoint(BaseModel):
+    """Citation history data point."""
+    date: str
+    citation_count: int
 
 
 class HypeScoresResponse(BaseModel):
@@ -98,8 +104,16 @@ async def get_hype_scores(
     stars = latest_snap.star_count if latest_snap else 0
 
     # Calculate age in days
-    from datetime import datetime
-    age_days = (datetime.utcnow() - paper.published_date).days if paper.published_date else 1
+    from datetime import datetime, date
+    if paper.published_date:
+        # Convert date to datetime if needed
+        if isinstance(paper.published_date, date) and not isinstance(paper.published_date, datetime):
+            pub_datetime = datetime.combine(paper.published_date, datetime.min.time())
+        else:
+            pub_datetime = paper.published_date
+        age_days = (datetime.utcnow() - pub_datetime).days
+    else:
+        age_days = 1
     age_days = max(age_days, 1)
 
     # SOTAPapers formula: (citations * 100 + stars) / age_days
@@ -161,7 +175,7 @@ async def get_references(
     # Papers this paper cites (references)
     refs_result = await db.execute(
         select(PaperReference, Paper)
-        .join(Paper, PaperReference.referenced_paper_id == Paper.id)
+        .join(Paper, PaperReference.target_paper_id == Paper.id)
         .where(PaperReference.source_paper_id == paper_id)
     )
     for ref, cited_paper in refs_result:
@@ -177,7 +191,7 @@ async def get_references(
     citing_result = await db.execute(
         select(PaperReference, Paper)
         .join(Paper, PaperReference.source_paper_id == Paper.id)
-        .where(PaperReference.referenced_paper_id == paper_id)
+        .where(PaperReference.target_paper_id == paper_id)
     )
     for ref, citing_paper in citing_result:
         nodes.append(ReferenceNode(
@@ -189,6 +203,42 @@ async def get_references(
         ))
 
     return nodes
+
+
+@router.get("/{paper_id}/citation-history", response_model=List[CitationHistoryPoint])
+async def get_citation_history(
+    paper_id: UUID,
+    days: int = 365,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get citation history for a paper."""
+    # Check paper exists
+    result = await db.execute(select(Paper).where(Paper.id == paper_id))
+    paper = result.scalar_one_or_none()
+    if not paper:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    # Get citation snapshots
+    from datetime import datetime, timedelta
+    since_date = datetime.utcnow().date() - timedelta(days=days)
+
+    snapshots_result = await db.execute(
+        select(CitationSnapshot)
+        .where(
+            CitationSnapshot.paper_id == paper_id,
+            CitationSnapshot.snapshot_date >= since_date
+        )
+        .order_by(CitationSnapshot.snapshot_date)
+    )
+    snapshots = snapshots_result.scalars().all()
+
+    return [
+        CitationHistoryPoint(
+            date=snap.snapshot_date.isoformat(),
+            citation_count=snap.citation_count
+        )
+        for snap in snapshots
+    ]
 
 
 @router.get("/{paper_id}/download-pdf")

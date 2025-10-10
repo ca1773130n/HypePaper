@@ -430,7 +430,7 @@ async def _crawl_citations(
     logger.info(f"Discovering papers via citations from: {paper_id}, depth: {citation_depth}")
 
     # Import services
-    from ..services.pdf_service import PDFAnalysisService
+    # from ..services.pdf_service import PDFAnalysisService
     from ..services.citation_service import CitationMatcher
     from .semanticscholar_client import SemanticScholarClient
     from ..services.arxiv_service import AsyncArxivService

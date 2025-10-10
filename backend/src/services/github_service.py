@@ -51,21 +51,22 @@ class AsyncGitHubService:
         Args:
             api_token: GitHub API token (defaults to GITHUB_TOKEN env var)
 
-        Raises:
-            ValueError: If no API token is provided or found in environment
+        Note:
+            If no token is provided, GitHub API calls will be skipped (no enrichment)
         """
         self.api_token = api_token or os.getenv('GITHUB_TOKEN')
-        if not self.api_token:
-            raise ValueError(
-                "GITHUB_TOKEN environment variable not set. "
-                "Please provide a GitHub personal access token."
-            )
 
-        self.headers = {
-            'Authorization': f'token {self.api_token}',
-            'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'HypePaper-Bot/1.0'
-        }
+        if self.api_token:
+            self.headers = {
+                'Authorization': f'token {self.api_token}',
+                'Accept': 'application/vnd.github.v3+json',
+                'User-Agent': 'HypePaper-Bot/1.0'
+            }
+        else:
+            self.headers = {
+                'Accept': 'application/vnd.github.v3+json',
+                'User-Agent': 'HypePaper-Bot/1.0'
+            }
 
         # Rate limiting: 5000 requests per hour = ~1.4 req/sec
         self.semaphore = asyncio.Semaphore(5)

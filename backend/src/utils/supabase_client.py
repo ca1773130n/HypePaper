@@ -28,8 +28,8 @@ def get_supabase_client() -> Client:
             )
 
         _supabase_client = create_client(
-            settings.supabase_url,
-            settings.supabase_service_key,
+            supabase_url=settings.supabase_url,
+            supabase_key=settings.supabase_service_key,
         )
 
     return _supabase_client
@@ -52,6 +52,6 @@ def get_anon_client() -> Client:
         )
 
     return create_client(
-        settings.supabase_url,
-        settings.supabase_anon_key,
+        supabase_url=settings.supabase_url,
+        supabase_key=settings.supabase_anon_key,
     )

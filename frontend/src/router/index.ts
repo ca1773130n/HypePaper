@@ -6,6 +6,7 @@ import AuthCallbackPage from '@/pages/AuthCallbackPage.vue'
 import ProfilePage from '@/pages/ProfilePage.vue'
 import AdminDashboard from '@/pages/AdminDashboard.vue'
 import PaperDetailPage from '@/pages/PaperDetailPage.vue'
+import CrawlerPage from '@/pages/CrawlerPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -41,17 +42,18 @@ const router = createRouter({
       path: '/papers/:id',
       name: 'paper-detail',
       component: PaperDetailPage
+    },
+    {
+      path: '/crawler',
+      name: 'crawler',
+      component: CrawlerPage,
+      meta: { requiresAuth: true }
     }
   ]
 })
 
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
-
-  // Initialize auth if not done yet
-  if (!authStore.user && !authStore.loading) {
-    await authStore.fetchUser()
-  }
 
   // Check if route requires authentication
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {

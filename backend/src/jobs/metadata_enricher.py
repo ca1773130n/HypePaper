@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .celery_app import celery_app
 from ..database import AsyncSessionLocal
-from ..services.pdf_service import PDFAnalysisService
+# from ..services.pdf_service import PDFAnalysisService
 from ..services.pdf_storage_service import PDFStorageService
 from ..services.llm_service import OpenAILLMService, LlamaCppLLMService
 from ..models.paper import Paper

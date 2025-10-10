@@ -31,20 +31,33 @@ async def get_current_user(
 
     try:
         supabase = get_supabase_client()
+        print(f"[AUTH DEBUG] Token received: {credentials.credentials[:20]}...")
+        print(f"[AUTH DEBUG] Supabase client type: {type(supabase)}")
+        print(f"[AUTH DEBUG] Auth client type: {type(supabase.auth)}")
+
         user = supabase.auth.get_user(credentials.credentials)
+        print(f"[AUTH DEBUG] User response: {user}")
 
         if not user or not user.user:
+            print("[AUTH DEBUG] No user in response")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication credentials",
             )
 
+        print(f"[AUTH DEBUG] User ID: {user.user.id}")
         return {
             "id": user.user.id,
             "email": user.user.email,
             "user_metadata": user.user.user_metadata,
         }
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"[AUTH DEBUG] Exception type: {type(e)}")
+        print(f"[AUTH DEBUG] Exception details: {e}")
+        import traceback
+        print(f"[AUTH DEBUG] Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Could not validate credentials: {str(e)}",

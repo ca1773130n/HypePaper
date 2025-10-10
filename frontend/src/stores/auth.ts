@@ -41,14 +41,19 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchUser() {
     loading.value = true
     try {
-      const { data: { user: currentUser }, error } = await supabase.auth.getUser()
-      if (error) throw error
-      user.value = currentUser
+      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession()
+      
+      // If no session, silently return (user not logged in)
+      if (!currentSession || sessionError) {
+        user.value = null
+        session.value = null
+        return
+      }
 
-      const { data: { session: currentSession } } = await supabase.auth.getSession()
       session.value = currentSession
+      user.value = currentSession.user
     } catch (error) {
-      console.error('Error fetching user:', error)
+      // Silently handle - no session is expected when not logged in
       user.value = null
       session.value = null
     } finally {

@@ -23,6 +23,7 @@ class PaperListItem(BaseModel):
     id: str
     title: str
     authors: list[str]
+    abstract: str
     published_date: str
     venue: Optional[str] = None
     github_url: Optional[str] = None
@@ -149,6 +150,7 @@ async def get_papers(
                 id=str(paper.id),
                 title=paper.title,
                 authors=paper.authors,
+                abstract=paper.abstract,
                 published_date=paper.published_date.isoformat(),
                 venue=paper.venue,
                 github_url=paper.github_url,

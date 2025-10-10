@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, String, Text, text
+from sqlalchemy import Boolean, CheckConstraint, String, Text, text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -21,6 +21,8 @@ class Topic(Base):
     - name: Topic name (3-100 chars, lowercase, unique)
     - description: Optional detailed description
     - keywords: Related keywords for matching
+    - is_system: Whether this is a system topic (vs user-created)
+    - user_id: User ID if custom topic (null for system topics)
     - created_at: Topic creation timestamp
 
     Constraints:
@@ -28,8 +30,8 @@ class Topic(Base):
     - Name must be unique
     - Each keyword: 2-50 characters
 
-    Note: For MVP, topics are predefined (seeded in database).
-    User-created topics deferred to post-MVP.
+    Note: System topics are predefined and available to all users.
+    Users can also create custom topics.
     """
 
     __tablename__ = "topics"
@@ -46,6 +48,8 @@ class Topic(Base):
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     keywords: Mapped[Optional[list[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    is_system: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    user_id: Mapped[Optional[UUID]] = mapped_column(PGUUID(as_uuid=True), nullable=True)
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(

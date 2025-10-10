@@ -162,13 +162,6 @@ class GitHubMetrics(Base):
         back_populates="github_metrics"
     )
 
-    star_history: Mapped[list["GitHubStarSnapshot"]] = relationship(
-        "GitHubStarSnapshot",
-        back_populates="metrics",
-        cascade="all, delete-orphan",
-        order_by="GitHubStarSnapshot.snapshot_date.desc()"
-    )
-
     __table_args__ = (
         Index("idx_github_metrics_weekly_hype", "weekly_hype", postgresql_ops={"weekly_hype": "DESC"}),
         Index("idx_github_metrics_monthly_hype", "monthly_hype", postgresql_ops={"monthly_hype": "DESC"}),
@@ -181,22 +174,31 @@ class GitHubMetrics(Base):
 
 
 class GitHubStarSnapshot(Base):
-    """Daily star count snapshots (TimescaleDB hypertable).
+    """Daily star count snapshots.
 
     Stores historical star counts for calculating velocity metrics.
     """
 
     __tablename__ = "github_star_snapshots"
 
-    # Composite primary key (time-series)
+    # Primary key
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True
+    )
+
+    # Foreign key
     paper_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True),
-        ForeignKey("github_metrics.paper_id", ondelete="CASCADE"),
-        primary_key=True
+        ForeignKey("papers.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
     )
 
     snapshot_date: Mapped[date] = mapped_column(
-        primary_key=True,
+        nullable=False,
+        index=True,
         comment="Date of snapshot (UTC)"
     )
 
@@ -207,37 +209,10 @@ class GitHubStarSnapshot(Base):
         comment="Star count at snapshot time"
     )
 
-    fork_count: Mapped[int] = mapped_column(
-        Integer,
-        default=0,
-        nullable=False,
-        comment="Fork count at snapshot time"
-    )
-
-    watcher_count: Mapped[int] = mapped_column(
-        Integer,
-        default=0,
-        nullable=False,
-        comment="Watcher count at snapshot time"
-    )
-
-    # Calculated deltas
-    stars_gained_since_yesterday: Mapped[Optional[int]] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Star delta from previous day"
-    )
-
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         server_default=text("NOW()"),
         nullable=False
-    )
-
-    # Relationships
-    metrics: Mapped["GitHubMetrics"] = relationship(
-        "GitHubMetrics",
-        back_populates="star_history"
     )
 
     __table_args__ = (

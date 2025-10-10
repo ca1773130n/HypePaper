@@ -101,6 +101,34 @@ class AsyncArxivService:
 
         return []
 
+    async def search_by_arxiv_id(self, arxiv_id: str) -> List[dict]:
+        """
+        Search ArXiv papers by ArXiv ID.
+
+        Args:
+            arxiv_id: ArXiv ID (e.g., 2410.12345v1)
+
+        Returns:
+            List of matching papers (usually 1)
+        """
+        search_query = f'id:{arxiv_id}'
+
+        async with self.semaphore:
+            async with aiohttp.ClientSession() as session:
+                params = {
+                    'search_query': search_query,
+                    'max_results': 1
+                }
+
+                async with session.get(
+                    self.ARXIV_API_URL,
+                    params=params,
+                    timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
+                    response.raise_for_status()
+                    text = await response.text()
+                    return self._parse_arxiv_xml(text)
+
     async def search_by_title(self, title: str) -> List[dict]:
         """
         Search ArXiv papers by exact title.

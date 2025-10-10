@@ -11,7 +11,6 @@ from .topic_service import TopicService
 # SOTAPapers legacy integration services
 from .arxiv_service import AsyncArxivService
 from .github_service import AsyncGitHubService, GitHubRepo
-from .pdf_service import PDFAnalysisService  # Fixed for gmft v0.2.1
 from .llm_service import AsyncLLMService, OpenAILLMService, LlamaCppLLMService
 from .citation_service import CitationMatcher
 from .config_service import ConfigService, get_config_service
@@ -28,7 +27,6 @@ __all__ = [
     "AsyncArxivService",
     "AsyncGitHubService",
     "GitHubRepo",
-    "PDFAnalysisService",  # Fixed for gmft v0.2.1
     "AsyncLLMService",
     "OpenAILLMService",
     "LlamaCppLLMService",

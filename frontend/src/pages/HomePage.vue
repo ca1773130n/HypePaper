@@ -17,10 +17,39 @@
             </h1>
             <p class="mt-2 text-gray-400 text-sm font-light tracking-wide">Discover what's trending in research</p>
           </div>
-          <div class="hidden sm:flex items-center gap-3">
-            <div class="px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
+          <div class="flex items-center gap-3">
+            <div class="hidden sm:block px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
               <span class="text-sm font-medium text-blue-300">{{ papers.length }} papers</span>
             </div>
+
+            <!-- Auth Buttons -->
+            <div v-if="authStore.isAuthenticated" class="flex items-center gap-3">
+              <button
+                @click="navigateToCrawler"
+                class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all text-gray-200 text-sm font-medium"
+              >
+                Crawl Papers
+              </button>
+              <button
+                @click="navigateToProfile"
+                class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-purple-500/50 transition-all text-gray-200 text-sm font-medium"
+              >
+                Profile
+              </button>
+              <button
+                @click="handleSignOut"
+                class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-red-500/50 transition-all text-gray-400 hover:text-red-300 text-sm"
+              >
+                Sign Out
+              </button>
+            </div>
+            <button
+              v-else
+              @click="navigateToLogin"
+              class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-sm font-medium shadow-lg shadow-purple-500/50 transition-all"
+            >
+              Sign In
+            </button>
           </div>
         </div>
       </div>
@@ -35,44 +64,58 @@
           <label class="text-sm font-medium text-gray-300 min-w-fit">
             Topic
           </label>
-          <SelectRoot v-model="selectedTopic">
-            <SelectTrigger class="w-full sm:w-96 inline-flex items-center justify-between rounded-xl bg-white/5 backdrop-blur-xl px-5 py-3.5 text-sm border border-white/10 hover:border-white/20 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all">
-              <SelectValue placeholder="All Topics" class="text-gray-200" />
-              <SelectIcon>
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </SelectIcon>
-            </SelectTrigger>
+          <div ref="topicDropdownRef" class="relative w-full sm:w-96">
+            <button
+              @click="topicDropdownOpen = !topicDropdownOpen"
+              class="w-full inline-flex items-center justify-between rounded-xl bg-white/5 backdrop-blur-xl px-5 py-3.5 text-sm border border-white/10 hover:border-white/20 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+            >
+              <span class="text-gray-200">
+                {{ selectedTopicLabels }}
+              </span>
+              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
 
-            <SelectPortal>
-              <SelectContent class="bg-[#1A1F35] backdrop-blur-2xl rounded-xl shadow-2xl border border-white/10 overflow-hidden z-50">
-                <SelectViewport class="p-2">
-                  <SelectItem value="all" class="relative flex items-center px-10 py-3 rounded-lg text-sm text-gray-200 hover:bg-white/10 cursor-pointer outline-none transition-colors">
-                    <SelectItemText>All Topics</SelectItemText>
-                    <SelectItemIndicator class="absolute left-3 inline-flex items-center">
-                      <svg class="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                      </svg>
-                    </SelectItemIndicator>
-                  </SelectItem>
-                  <SelectItem
-                    v-for="topic in topics"
-                    :key="topic.id"
-                    :value="topic.id"
-                    class="relative flex items-center px-10 py-3 rounded-lg text-sm text-gray-200 hover:bg-white/10 cursor-pointer outline-none transition-colors"
-                  >
-                    <SelectItemText>{{ topic.name }}</SelectItemText>
-                    <SelectItemIndicator class="absolute left-3 inline-flex items-center">
-                      <svg class="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                      </svg>
-                    </SelectItemIndicator>
-                  </SelectItem>
-                </SelectViewport>
-              </SelectContent>
-            </SelectPortal>
-          </SelectRoot>
+            <!-- Checkbox Dropdown -->
+            <div
+              v-if="topicDropdownOpen"
+              class="absolute top-full mt-2 w-full bg-[#1A1F35] backdrop-blur-2xl rounded-xl shadow-2xl border border-white/10 overflow-hidden z-50 max-h-96 overflow-y-auto"
+              @click.stop
+            >
+              <!-- All Topics -->
+              <label
+                class="flex items-center justify-between px-5 py-3 hover:bg-white/10 cursor-pointer transition-colors border-b border-white/10"
+              >
+                <span class="text-sm text-gray-200 font-medium">All Topics</span>
+                <input
+                  type="checkbox"
+                  :checked="isAllTopicsSelected"
+                  @change="toggleAllTopics"
+                  class="w-4 h-4 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-2 focus:ring-purple-500/50"
+                />
+              </label>
+
+              <!-- User Topics -->
+              <label
+                v-for="topic in userTopics"
+                :key="topic.id"
+                :class="[
+                  'flex items-center justify-between px-5 py-3 hover:bg-white/10 cursor-pointer transition-colors',
+                  isAllTopicsSelected ? 'opacity-40' : ''
+                ]"
+              >
+                <span class="text-sm text-gray-200">{{ topic.name }}</span>
+                <input
+                  type="checkbox"
+                  :checked="selectedTopics.includes(topic.id)"
+                  @change="toggleTopic(topic.id)"
+                  :disabled="isAllTopicsSelected"
+                  class="w-4 h-4 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              </label>
+            </div>
+          </div>
         </div>
 
         <!-- Sort Controls -->
@@ -131,7 +174,7 @@
             <!-- Category Badge -->
             <div class="flex items-center justify-between mb-3">
               <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 border border-blue-500/30">
-                {{ paper.primary_category }}
+                {{ paper.venue || 'Research Paper' }}
               </span>
               <span v-if="paper.github_url" class="text-gray-400 group-hover:text-purple-300 transition-colors">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -185,8 +228,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 import {
   SelectRoot,
   SelectTrigger,
@@ -200,12 +244,19 @@ import {
   SelectItemIndicator,
 } from 'reka-ui'
 import { topicsApi, papersApi, type Topic, type Paper } from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const topics = ref<Topic[]>([])
+const userTopics = computed(() => topics.value.filter((t: any) => !t.is_system))
 const papers = ref<Paper[]>([])
-const selectedTopic = ref('all')
+const selectedTopics = ref<string[]>([])
+const previousSelectedTopics = ref<string[]>([])
+const isAllTopicsSelected = ref(true)
+const topicDropdownOpen = ref(false)
+const topicDropdownRef = ref<HTMLElement | null>(null)
 const selectedSort = ref<'hype_score' | 'published_date' | 'stars' | 'citations'>('hype_score')
 const loading = ref(false)
 const error = ref('')
@@ -217,10 +268,51 @@ const sortOptions = [
   { value: 'citations' as const, label: '📚 Citations' },
 ]
 
+const selectedTopicLabels = computed(() => {
+  if (isAllTopicsSelected.value) {
+    return 'All Topics'
+  }
+  if (selectedTopics.value.length === 0) {
+    return 'Select Topics'
+  }
+  if (selectedTopics.value.length === 1) {
+    const topic = userTopics.value.find((t: any) => t.id === selectedTopics.value[0])
+    return topic?.name || 'Select Topics'
+  }
+  return `${selectedTopics.value.length} Topics Selected`
+})
+
+const toggleAllTopics = () => {
+  if (isAllTopicsSelected.value) {
+    // Unchecking "All Topics" - restore previous selection
+    isAllTopicsSelected.value = false
+    selectedTopics.value = [...previousSelectedTopics.value]
+  } else {
+    // Checking "All Topics" - save current selection and clear
+    previousSelectedTopics.value = [...selectedTopics.value]
+    isAllTopicsSelected.value = true
+    selectedTopics.value = []
+  }
+}
+
+const toggleTopic = (topicId: string) => {
+  const index = selectedTopics.value.indexOf(topicId)
+  if (index > -1) {
+    selectedTopics.value.splice(index, 1)
+  } else {
+    selectedTopics.value.push(topicId)
+  }
+  // Update previous selection when manually selecting topics
+  previousSelectedTopics.value = [...selectedTopics.value]
+}
+
 const fetchTopics = async () => {
   try {
-    const response = await topicsApi.getAll()
-    topics.value = response.data.topics
+    console.log('[HomePage] Fetching topics, authenticated:', authStore.isAuthenticated)
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/topics`)
+    console.log('[HomePage] Topics received:', response.data)
+    topics.value = response.data
+    console.log('[HomePage] User topics filtered:', userTopics.value)
   } catch (err) {
     console.error('Failed to fetch topics:', err)
   }
@@ -230,8 +322,16 @@ const fetchPapers = async () => {
   loading.value = true
   error.value = ''
   try {
+    // For now, if multiple topics selected, show all papers
+    // TODO: Backend support for multiple topic filtering
+    const topicId = isAllTopicsSelected.value || selectedTopics.value.length === 0
+      ? undefined
+      : selectedTopics.value.length === 1
+        ? selectedTopics.value[0]
+        : undefined
+
     const response = await papersApi.getAll({
-      topic_id: selectedTopic.value === 'all' ? undefined : selectedTopic.value,
+      topic_id: topicId,
       sort_by: selectedSort.value,
       limit: 100,
     })
@@ -248,6 +348,22 @@ const navigateToPaper = (id: string) => {
   router.push(`/papers/${id}`)
 }
 
+const navigateToLogin = () => {
+  router.push('/login')
+}
+
+const navigateToProfile = () => {
+  router.push('/profile')
+}
+
+const navigateToCrawler = () => {
+  router.push('/crawler')
+}
+
+const handleSignOut = async () => {
+  await authStore.signOut()
+}
+
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -256,13 +372,43 @@ const formatDate = (dateString: string) => {
   })
 }
 
-watch([selectedTopic, selectedSort], () => {
+watch([selectedTopics, isAllTopicsSelected, selectedSort], () => {
   fetchPapers()
+}, { deep: true })
+
+// Refetch topics when authentication state changes
+watch(() => authStore.isAuthenticated, (isAuth) => {
+  if (isAuth) {
+    fetchTopics()
+  }
 })
 
-onMounted(() => {
+// Close dropdown when clicking outside
+const handleClickOutside = (event: MouseEvent) => {
+  if (topicDropdownRef.value && !topicDropdownRef.value.contains(event.target as Node)) {
+    topicDropdownOpen.value = false
+  }
+}
+
+onMounted(async () => {
+  // Wait for auth session to be restored
+  await authStore.fetchUser()
+
+  // Now fetch topics and papers
   fetchTopics()
   fetchPapers()
+  document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
+// Refetch topics when navigating back to this page
+watch(() => router.currentRoute.value.path, (newPath) => {
+  if (newPath === '/') {
+    fetchTopics()
+  }
 })
 </script>
 

@@ -13,20 +13,23 @@ export interface Topic {
   id: string
   name: string
   description: string
+  keywords?: string[]
+  is_system: boolean
+  user_id?: string | null
   created_at: string
+  paper_count?: number
 }
 
 export interface Paper {
   id: string
   title: string
   authors: string[]
-  arxiv_id: string
-  published_date: string
   abstract: string
+  published_date: string
+  venue: string | null
   github_url: string | null
-  primary_category: string
-  categories: string[]
-  created_at: string
+  hype_score: number
+  trend_label: string
 }
 
 export interface HypeScore {
