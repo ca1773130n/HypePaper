@@ -1,0 +1,38 @@
+name: Claude-Flow Tasks
+
+on:
+  push:
+    paths:
+      - "tasks.md"
+
+jobs:
+  run-claude-flow:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install Claude-Flow
+        run: |
+          pip install claude-flow
+          # (Optional) install Claude Code if it's a separate package
+          pip install claude-code
+
+      - name: Run Claude-Flow on tasks.md
+        run: |
+          claude-flow run flows/run-tasks.yaml --headless
+
+      - name: Commit and push results
+        run: |
+          git config --global user.name "claude-flow-bot"
+          git config --global user.email "ca1773130n@gmail.com"
+          git add .
+          git commit -m "claude-flow: implement tasks from tasks.md" || echo "No changes to commit"
+          git push
+

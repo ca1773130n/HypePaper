@@ -1,0 +1,311 @@
+openapi: 3.0.3
+info:
+  title: HypePaper Papers API
+  description: API for retrieving trending research papers
+  version: 1.0.0
+
+paths:
+  /api/v1/papers:
+    get:
+      summary: Get trending papers
+      description: Returns list of papers filtered by topic and sorted by hype score
+      operationId: getPapers
+      tags:
+        - Papers
+      parameters:
+        - name: topic_id
+          in: query
+          required: false
+          description: Filter by topic UUID (omit for all topics)
+          schema:
+            type: string
+            format: uuid
+        - name: sort
+          in: query
+          required: false
+          description: Sort order
+          schema:
+            type: string
+            enum: [hype_score, recency, stars]
+            default: hype_score
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of papers to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 50
+        - name: offset
+          in: query
+          required: false
+          description: Pagination offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: days_since_publish
+          in: query
+          required: false
+          description: Filter papers published within N days
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+      responses:
+        '200':
+          description: List of papers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  papers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PaperSummary'
+                  total:
+                    type: integer
+                    example: 247
+                  limit:
+                    type: integer
+                    example: 50
+                  offset:
+                    type: integer
+                    example: 0
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/papers/{paperId}:
+    get:
+      summary: Get paper details
+      description: Returns detailed information about a specific paper including historical metrics
+      operationId: getPaperById
+      tags:
+        - Papers
+      parameters:
+        - name: paperId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Paper details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/papers/{paperId}/metrics:
+    get:
+      summary: Get paper metrics history
+      description: Returns time-series metrics for trend analysis
+      operationId: getPaperMetrics
+      tags:
+        - Papers
+      parameters:
+        - name: paperId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: days
+          in: query
+          required: false
+          description: Number of days of history to return
+          schema:
+            type: integer
+            minimum: 7
+            maximum: 365
+            default: 30
+      responses:
+        '200':
+          description: Metrics history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paper_id:
+                    type: string
+                    format: uuid
+                  metrics:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MetricSnapshot'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    PaperSummary:
+      type: object
+      required:
+        - id
+        - title
+        - authors
+        - published_date
+        - hype_score
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          minLength: 10
+          maxLength: 500
+        authors:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        published_date:
+          type: string
+          format: date
+        venue:
+          type: string
+          nullable: true
+          example: "CVPR 2024"
+        github_url:
+          type: string
+          format: uri
+          nullable: true
+        arxiv_url:
+          type: string
+          format: uri
+          nullable: true
+        hype_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Trending score (0-100)
+        trend_label:
+          type: string
+          enum: [rising, stable, declining]
+        current_stars:
+          type: integer
+          nullable: true
+          minimum: 0
+        current_citations:
+          type: integer
+          nullable: true
+          minimum: 0
+        days_since_publish:
+          type: integer
+          minimum: 0
+
+    PaperDetail:
+      allOf:
+        - $ref: '#/components/schemas/PaperSummary'
+        - type: object
+          properties:
+            arxiv_id:
+              type: string
+              nullable: true
+            doi:
+              type: string
+              nullable: true
+            abstract:
+              type: string
+            pdf_url:
+              type: string
+              format: uri
+              nullable: true
+            topics:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  relevance_score:
+                    type: number
+                    format: float
+                    minimum: 0
+                    maximum: 10
+            star_growth_7d:
+              type: number
+              format: float
+              description: 7-day star growth rate
+            citation_growth_30d:
+              type: number
+              format: float
+              description: 30-day citation growth rate
+
+    MetricSnapshot:
+      type: object
+      required:
+        - snapshot_date
+      properties:
+        snapshot_date:
+          type: string
+          format: date
+        github_stars:
+          type: integer
+          nullable: true
+          minimum: 0
+        citation_count:
+          type: integer
+          nullable: true
+          minimum: 0
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          nullable: true
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "bad_request"
+            message: "Invalid sort parameter"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "not_found"
+            message: "Paper not found"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "internal_error"
+            message: "An unexpected error occurred"

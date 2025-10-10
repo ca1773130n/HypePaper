@@ -1,0 +1,130 @@
+openapi: 3.0.3
+info:
+  title: HypePaper Topics API
+  description: API for managing research topics
+  version: 1.0.0
+
+paths:
+  /api/v1/topics:
+    get:
+      summary: Get all available topics
+      description: Returns list of all topics that can be watched
+      operationId: getTopics
+      tags:
+        - Topics
+      responses:
+        '200':
+          description: List of topics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  topics:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Topic'
+                  total:
+                    type: integer
+                    example: 10
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/topics/{topicId}:
+    get:
+      summary: Get topic details
+      description: Returns detailed information about a specific topic
+      operationId: getTopicById
+      tags:
+        - Topics
+      parameters:
+        - name: topicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Topic details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Topic'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    Topic:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: "neural rendering"
+        description:
+          type: string
+          nullable: true
+          example: "Novel view synthesis and 3D scene representation using neural networks"
+        keywords:
+          type: array
+          items:
+            type: string
+          example: ["nerf", "3d reconstruction", "view synthesis"]
+        paper_count:
+          type: integer
+          description: Number of papers matched to this topic
+          example: 247
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-10-01T00:00:00Z"
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: "not_found"
+        message:
+          type: string
+          example: "Topic not found"
+        details:
+          type: object
+          nullable: true
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "not_found"
+            message: "Topic not found"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "internal_error"
+            message: "An unexpected error occurred"

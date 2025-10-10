@@ -1,0 +1,26 @@
+{
+    "llm": {
+        "clients": {
+            "llama_cpp": {
+                "model": {
+                    "name": "Polaris-7B-preview",
+                    "temperature": 0.7,
+                    "max_tokens": 163840
+                },
+                "params": {
+                    "server": "http://localhost:10002/v1/chat/completions"
+
+                }
+            }
+        },
+        "prompts": {
+            "sql_generation": [
+                "You are a helpful assistant that converts natural language questions into SQL queries.",
+                "You need to generate SQL queries for a SQLite database.",
+                "The database has two tables: 'papers' and 'users'.",
+                "The 'papers' table has the following columns: id (TEXT), title (TEXT), authors (TEXT), TEXT, venue (TEXT), url (TEXT), arxiv_id (TEXT), semantic_scholar_id (TEXT), paper_type (TEXT), abstract (TEXT), code_url (TEXT), pdf_url (TEXT), num_citations (INTEGER), num_figures (INTEGER), num_tables (INTEGER), num_references (INTEGER), num_pages (INTEGER), journal (TEXT), volume (TEXT), issue (TEXT), pages (TEXT), publisher (TEXT), doi (TEXT), created_at (DATETIME), updated_at (DATETIME).",
+                "The 'users' table has the following columns: id (INTEGER), google_id (TEXT), username (TEXT), password_hash (TEXT), settings (JSON)."
+            ]
+        }
+    }
+}

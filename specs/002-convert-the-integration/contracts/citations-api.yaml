@@ -1,0 +1,613 @@
+openapi: 3.0.3
+info:
+  title: HypePaper Citations API
+  version: 1.0.0
+  description: |
+    Citation graph operations for HypePaper.
+
+    Supports:
+    - Citation graph traversal (multi-level)
+    - Citation-based paper discovery
+    - Citation network analysis
+
+  contact:
+    name: HypePaper API Support
+    email: support@hypepaper.dev
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://api.hypepaper.dev/v1
+    description: Production server
+
+tags:
+  - name: citations
+    description: Citation graph operations
+
+paths:
+  /citations/graph:
+    get:
+      summary: Get citation graph
+      description: |
+        Retrieve citation graph rooted at a specific paper.
+
+        Uses recursive query to traverse citation relationships up to specified depth.
+
+        Returns tree structure with:
+        - Incoming citations (papers citing this paper)
+        - Outgoing citations (papers cited by this paper)
+        - Metadata for each node (title, authors, year, citation count)
+
+      operationId: getCitationGraph
+      tags:
+        - citations
+      parameters:
+        - name: paper_id
+          in: query
+          required: true
+          description: Root paper UUID or ArXiv ID
+          schema:
+            type: string
+            example: "550e8400-e29b-41d4-a716-446655440000"
+
+        - name: depth
+          in: query
+          description: Traversal depth (1-3 levels)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 3
+            default: 2
+
+        - name: direction
+          in: query
+          description: Traversal direction
+          required: false
+          schema:
+            type: string
+            enum: [in, out, both]
+            default: both
+
+        - name: min_match_score
+          in: query
+          description: Minimum fuzzy match score (0-100)
+          required: false
+          schema:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 100
+            default: 70.0
+
+        - name: max_nodes
+          in: query
+          description: Maximum nodes to return (limit for performance)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 500
+
+      responses:
+        '200':
+          description: Citation graph retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CitationGraph'
+              examples:
+                graph_example:
+                  summary: Citation graph with depth 2
+                  value:
+                    root_paper_id: "550e8400-e29b-41d4-a716-446655440000"
+                    root_paper_title: "Attention Is All You Need"
+                    depth: 2
+                    direction: "both"
+                    total_nodes: 127
+                    total_edges: 156
+                    nodes:
+                      - paper_id: "550e8400-e29b-41d4-a716-446655440000"
+                        title: "Attention Is All You Need"
+                        authors: ["Vaswani, Ashish"]
+                        year: 2017
+                        citations_in_count: 12567
+                        citations_out_count: 42
+                        level: 0
+                      - paper_id: "660e8400-e29b-41d4-a716-446655440001"
+                        title: "BERT: Pre-training of Deep Bidirectional Transformers"
+                        authors: ["Devlin, Jacob"]
+                        year: 2018
+                        citations_in_count: 8234
+                        citations_out_count: 18
+                        level: 1
+                    edges:
+                      - source_id: "660e8400-e29b-41d4-a716-446655440001"
+                        target_id: "550e8400-e29b-41d4-a716-446655440000"
+                        relationship: "cites"
+                        match_score: 95.5
+                        match_method: "fuzzy_title_year"
+
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: Root paper not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /citations/discover:
+    post:
+      summary: Discover papers via citations
+      description: |
+        Expand paper discovery by traversing citation network.
+
+        Given a seed paper, discover related papers by:
+        1. Finding papers citing the seed (incoming citations)
+        2. Finding papers cited by the seed (outgoing citations)
+        3. Optionally: Papers co-cited with the seed
+        4. Optionally: Papers sharing authors with seed
+
+        Useful for literature review and topic exploration.
+
+      operationId: discoverViaCitations
+      tags:
+        - citations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiscoveryRequest'
+
+      responses:
+        '200':
+          description: Papers discovered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscoveryResponse'
+
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: Seed paper not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /citations/stats:
+    get:
+      summary: Get citation statistics
+      description: |
+        Retrieve citation statistics for a paper or corpus.
+
+        Includes:
+        - Citation distribution
+        - Top citing papers
+        - Citation velocity (citations over time)
+        - Co-citation analysis
+
+      operationId: getCitationStats
+      tags:
+        - citations
+      parameters:
+        - name: paper_id
+          in: query
+          description: Paper UUID (omit for corpus-wide stats)
+          required: false
+          schema:
+            type: string
+
+        - name: metric
+          in: query
+          description: Statistic to compute
+          required: false
+          schema:
+            type: string
+            enum:
+              - distribution
+              - top_citing
+              - velocity
+              - co_citation
+            default: distribution
+
+        - name: limit
+          in: query
+          description: Limit for top-N results
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+
+      responses:
+        '200':
+          description: Statistics computed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CitationStats'
+
+        '404':
+          description: Paper not found
+
+components:
+  schemas:
+    CitationGraph:
+      type: object
+      required:
+        - root_paper_id
+        - root_paper_title
+        - depth
+        - direction
+        - total_nodes
+        - total_edges
+        - nodes
+        - edges
+      properties:
+        root_paper_id:
+          type: string
+          format: uuid
+          description: Root paper UUID
+
+        root_paper_title:
+          type: string
+          description: Root paper title
+
+        depth:
+          type: integer
+          description: Traversal depth
+          example: 2
+
+        direction:
+          type: string
+          enum: [in, out, both]
+          description: Traversal direction
+
+        total_nodes:
+          type: integer
+          description: Total papers in graph
+          example: 127
+
+        total_edges:
+          type: integer
+          description: Total citation relationships
+          example: 156
+
+        nodes:
+          type: array
+          description: Graph nodes (papers)
+          items:
+            $ref: '#/components/schemas/GraphNode'
+
+        edges:
+          type: array
+          description: Graph edges (citations)
+          items:
+            $ref: '#/components/schemas/GraphEdge'
+
+        metadata:
+          type: object
+          description: Graph metadata
+          properties:
+            query_time_ms:
+              type: integer
+              description: Query execution time
+            truncated:
+              type: boolean
+              description: Whether graph was truncated (max_nodes reached)
+
+    GraphNode:
+      type: object
+      required:
+        - paper_id
+        - title
+        - level
+      properties:
+        paper_id:
+          type: string
+          format: uuid
+
+        title:
+          type: string
+          example: "Attention Is All You Need"
+
+        authors:
+          type: array
+          items:
+            type: string
+          example: ["Vaswani, Ashish", "Shazeer, Noam"]
+
+        year:
+          type: integer
+          nullable: true
+          example: 2017
+
+        venue:
+          type: string
+          nullable: true
+          example: "NeurIPS 2017"
+
+        citations_in_count:
+          type: integer
+          description: Total papers citing this paper
+          example: 12567
+
+        citations_out_count:
+          type: integer
+          description: Total papers cited by this paper
+          example: 42
+
+        level:
+          type: integer
+          description: Distance from root paper (0 = root)
+          example: 1
+
+        arxiv_id:
+          type: string
+          nullable: true
+          example: "1706.03762"
+
+        doi:
+          type: string
+          nullable: true
+
+    GraphEdge:
+      type: object
+      required:
+        - source_id
+        - target_id
+        - relationship
+      properties:
+        source_id:
+          type: string
+          format: uuid
+          description: Paper containing the citation
+
+        target_id:
+          type: string
+          format: uuid
+          description: Paper being cited
+
+        relationship:
+          type: string
+          enum: [cites, cited_by]
+          description: Edge direction
+
+        reference_text:
+          type: string
+          nullable: true
+          description: Original citation string from PDF
+
+        match_score:
+          type: number
+          format: float
+          nullable: true
+          minimum: 0
+          maximum: 100
+          description: Fuzzy matching score
+
+        match_method:
+          type: string
+          nullable: true
+          enum: [exact, fuzzy_title, fuzzy_title_year]
+
+        verified:
+          type: boolean
+          description: Whether citation was manually verified
+          example: false
+
+    DiscoveryRequest:
+      type: object
+      required:
+        - seed_paper_id
+      properties:
+        seed_paper_id:
+          type: string
+          format: uuid
+          description: Starting paper for discovery
+
+        strategies:
+          type: array
+          description: Discovery strategies to apply
+          items:
+            type: string
+            enum:
+              - citing_papers
+              - cited_papers
+              - co_cited_papers
+              - same_author_papers
+          default: [citing_papers, cited_papers]
+
+        max_papers_per_strategy:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+          description: Maximum papers to discover per strategy
+
+        filters:
+          type: object
+          description: Filters to apply to discovered papers
+          properties:
+            min_year:
+              type: integer
+              nullable: true
+            max_year:
+              type: integer
+              nullable: true
+            venues:
+              type: array
+              nullable: true
+              items:
+                type: string
+            min_citations:
+              type: integer
+              nullable: true
+            primary_task:
+              type: string
+              nullable: true
+
+    DiscoveryResponse:
+      type: object
+      required:
+        - seed_paper_id
+        - strategies_applied
+        - total_discovered
+        - papers
+      properties:
+        seed_paper_id:
+          type: string
+          format: uuid
+
+        seed_paper_title:
+          type: string
+
+        strategies_applied:
+          type: array
+          items:
+            type: string
+
+        total_discovered:
+          type: integer
+          description: Total papers discovered across all strategies
+          example: 75
+
+        papers:
+          type: array
+          description: Discovered papers grouped by strategy
+          items:
+            type: object
+            required:
+              - strategy
+              - count
+              - papers
+            properties:
+              strategy:
+                type: string
+                enum:
+                  - citing_papers
+                  - cited_papers
+                  - co_cited_papers
+                  - same_author_papers
+              count:
+                type: integer
+              papers:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - paper_id
+                    - title
+                    - authors
+                  properties:
+                    paper_id:
+                      type: string
+                      format: uuid
+                    title:
+                      type: string
+                    authors:
+                      type: array
+                      items:
+                        type: string
+                    year:
+                      type: integer
+                      nullable: true
+                    venue:
+                      type: string
+                      nullable: true
+                    citations_count:
+                      type: integer
+                    relevance_score:
+                      type: number
+                      format: float
+                      description: Relevance to seed paper (0-1)
+
+        metadata:
+          type: object
+          properties:
+            query_time_ms:
+              type: integer
+            filters_applied:
+              type: object
+
+    CitationStats:
+      type: object
+      required:
+        - metric
+      properties:
+        metric:
+          type: string
+          enum:
+            - distribution
+            - top_citing
+            - velocity
+            - co_citation
+
+        paper_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Paper UUID if paper-specific stats
+
+        data:
+          type: object
+          description: Statistics data (format varies by metric)
+          additionalProperties: true
+          examples:
+            - distribution:
+                total_citations: 12567
+                percentile_50: 5
+                percentile_90: 150
+                percentile_99: 1200
+            - top_citing:
+                - paper_id: "660e8400-e29b-41d4-a716-446655440001"
+                  title: "BERT: Pre-training"
+                  citation_count: 234
+            - velocity:
+                citations_per_year:
+                  "2017": 120
+                  "2018": 1234
+                  "2019": 2456
+                  "2020": 3214
+            - co_citation:
+                frequently_co_cited:
+                  - paper_id: "770e8400-e29b-41d4-a716-446655440002"
+                    title: "GloVe: Global Vectors"
+                    co_citation_count: 456
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          nullable: true

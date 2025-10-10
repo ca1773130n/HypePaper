@@ -1,0 +1,12 @@
+{
+    "paper_crawler": {
+        "pdf_download_basepath": "/data/workspace_294/edward/project/research/.pdfs",
+        "papers_published_after": 2023,
+        "num_processes": 4,
+        "forward_recursive_depth": 3,
+        "backward_recursive_depth": 1,
+        "url_prefix": "",
+        "request_timeout": 300,
+        "log_level": "DEBUG"
+    }
+}

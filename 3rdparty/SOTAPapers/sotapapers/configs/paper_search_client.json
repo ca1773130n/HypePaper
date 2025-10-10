@@ -1,0 +1,20 @@
+{
+    "paper_search_client": {
+        "semantic_scholar": {
+            "api_key": "",
+            "max_limit": 5
+        },
+        "arxiv": {
+            "max_results_by_keyword": 5,
+            "max_results": 10,
+            "max_retry": 10,
+            "retry_delay_sec": 5
+        },
+        "scholarly": {
+            "max_results_by_keyword": 5,
+            "max_results": 10,
+            "max_retry": 10,
+            "retry_delay_sec": 5
+        }
+    }
+}

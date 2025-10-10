@@ -1,0 +1,654 @@
+openapi: 3.0.3
+info:
+  title: HypePaper Jobs API
+  version: 1.0.0
+  description: |
+    Background job management for HypePaper.
+
+    Supports:
+    - Triggering paper discovery/crawling jobs
+    - Monitoring job status and progress
+    - Retrieving job results and logs
+
+  contact:
+    name: HypePaper API Support
+    email: support@hypepaper.dev
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://api.hypepaper.dev/v1
+    description: Production server
+
+tags:
+  - name: jobs
+    description: Background job operations
+
+paths:
+  /jobs/crawl:
+    post:
+      summary: Trigger paper crawling job
+      description: |
+        Trigger background job to crawl papers from various sources.
+
+        Sources:
+        - ArXiv (by keywords or category)
+        - Conference (by name/year)
+        - Citations (expand from seed papers)
+
+        Jobs are queued and processed asynchronously.
+
+      operationId: triggerCrawl
+      tags:
+        - jobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrawlJobRequest'
+
+      responses:
+        '202':
+          description: Job queued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+              examples:
+                arxiv_crawl:
+                  summary: ArXiv crawl job queued
+                  value:
+                    job_id: "crawl-arxiv-20241008-143025"
+                    job_type: "crawl_arxiv"
+                    status: "queued"
+                    created_at: "2024-10-08T14:30:25Z"
+                    estimated_completion: "2024-10-08T14:35:25Z"
+                    metadata:
+                      source: "arxiv"
+                      keywords: "transformer attention"
+                      max_results: 100
+
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '429':
+          description: Too many concurrent jobs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /jobs/enrich:
+    post:
+      summary: Trigger metadata enrichment job
+      description: |
+        Trigger background job to enrich paper metadata.
+
+        Enrichment includes:
+        - PDF download and text extraction
+        - Table extraction using GMFT
+        - LLM-based metadata extraction (tasks, methods, datasets)
+        - Citation parsing and matching
+
+        Can target specific papers or all papers missing enrichment.
+
+      operationId: triggerEnrich
+      tags:
+        - jobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnrichJobRequest'
+
+      responses:
+        '202':
+          description: Job queued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /jobs/{job_id}:
+    get:
+      summary: Get job status
+      description: |
+        Retrieve detailed job status including progress and results.
+
+        Includes:
+        - Current status (queued/processing/completed/failed)
+        - Progress metrics (papers processed, remaining)
+        - Partial results (if available)
+        - Error logs (if failed)
+
+      operationId: getJobStatus
+      tags:
+        - jobs
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          description: Job ID returned from job creation
+          schema:
+            type: string
+            example: "crawl-arxiv-20241008-143025"
+
+      responses:
+        '200':
+          description: Job status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatus'
+              examples:
+                processing:
+                  summary: Job in progress
+                  value:
+                    job_id: "crawl-arxiv-20241008-143025"
+                    job_type: "crawl_arxiv"
+                    status: "processing"
+                    created_at: "2024-10-08T14:30:25Z"
+                    started_at: "2024-10-08T14:30:30Z"
+                    progress:
+                      total: 100
+                      completed: 45
+                      failed: 2
+                      percentage: 45.0
+                    results:
+                      papers_discovered: 43
+                      papers_created: 38
+                      papers_updated: 5
+                    logs:
+                      - timestamp: "2024-10-08T14:30:35Z"
+                        level: "info"
+                        message: "Processing ArXiv query: transformer attention"
+                      - timestamp: "2024-10-08T14:31:02Z"
+                        level: "warning"
+                        message: "Paper 2301.12345 already exists, updating metadata"
+
+                completed:
+                  summary: Job completed successfully
+                  value:
+                    job_id: "crawl-arxiv-20241008-143025"
+                    job_type: "crawl_arxiv"
+                    status: "completed"
+                    created_at: "2024-10-08T14:30:25Z"
+                    started_at: "2024-10-08T14:30:30Z"
+                    completed_at: "2024-10-08T14:35:12Z"
+                    duration_seconds: 282
+                    progress:
+                      total: 100
+                      completed: 98
+                      failed: 2
+                      percentage: 100.0
+                    results:
+                      papers_discovered: 98
+                      papers_created: 87
+                      papers_updated: 11
+                      errors: 2
+                    logs:
+                      - timestamp: "2024-10-08T14:35:12Z"
+                        level: "info"
+                        message: "Crawl job completed successfully"
+
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /jobs/{job_id}/cancel:
+    post:
+      summary: Cancel running job
+      description: |
+        Cancel a queued or processing job.
+
+        Gracefully stops job execution and saves partial results.
+
+      operationId: cancelJob
+      tags:
+        - jobs
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+
+      responses:
+        '200':
+          description: Job cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - job_id
+                  - status
+                properties:
+                  job_id:
+                    type: string
+                  status:
+                    type: string
+                    enum: [cancelled]
+                  message:
+                    type: string
+                    example: "Job cancelled successfully. Partial results saved."
+
+        '400':
+          description: Job cannot be cancelled (already completed/failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: Job not found
+
+  /jobs:
+    get:
+      summary: List jobs
+      description: |
+        List background jobs with filtering and pagination.
+
+        Useful for monitoring job history and debugging.
+
+      operationId: listJobs
+      tags:
+        - jobs
+      parameters:
+        - name: job_type
+          in: query
+          description: Filter by job type
+          required: false
+          schema:
+            type: string
+            enum:
+              - crawl_arxiv
+              - crawl_conference
+              - crawl_citations
+              - enrich_metadata
+              - track_github_stars
+
+        - name: status
+          in: query
+          description: Filter by status
+          required: false
+          schema:
+            type: string
+            enum: [queued, processing, completed, failed, cancelled]
+
+        - name: created_after
+          in: query
+          description: Filter jobs created after timestamp
+          required: false
+          schema:
+            type: string
+            format: date-time
+
+        - name: created_before
+          in: query
+          description: Filter jobs created before timestamp
+          required: false
+          schema:
+            type: string
+            format: date-time
+
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+
+        - name: page_size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+
+      responses:
+        '200':
+          description: Jobs list retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - jobs
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JobSummary'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  page_size:
+                    type: integer
+
+components:
+  schemas:
+    CrawlJobRequest:
+      type: object
+      required:
+        - source
+      properties:
+        source:
+          type: string
+          enum: [arxiv, conference, citations]
+          description: Crawl source
+
+        # ArXiv-specific parameters
+        arxiv_keywords:
+          type: string
+          description: Search keywords (source=arxiv)
+          example: "transformer attention mechanisms"
+
+        arxiv_category:
+          type: string
+          description: ArXiv category (source=arxiv)
+          example: "cs.AI"
+
+        arxiv_max_results:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 100
+          description: Maximum papers to crawl (source=arxiv)
+
+        # Conference-specific parameters
+        conference_name:
+          type: string
+          description: Conference name (source=conference)
+          example: "CVPR 2024"
+
+        conference_year:
+          type: integer
+          description: Conference year (source=conference)
+          example: 2024
+
+        # Citation-specific parameters
+        seed_paper_ids:
+          type: array
+          description: Seed papers for citation crawl (source=citations)
+          items:
+            type: string
+            format: uuid
+
+        citation_depth:
+          type: integer
+          minimum: 1
+          maximum: 3
+          default: 1
+          description: Citation traversal depth (source=citations)
+
+        # Common parameters
+        priority:
+          type: string
+          enum: [low, normal, high]
+          default: normal
+          description: Job priority
+
+        enable_enrichment:
+          type: boolean
+          default: false
+          description: Automatically enrich crawled papers
+
+    EnrichJobRequest:
+      type: object
+      properties:
+        paper_ids:
+          type: array
+          description: Specific papers to enrich (omit for all unenriched)
+          items:
+            type: string
+            format: uuid
+
+        enrichment_tasks:
+          type: array
+          description: Enrichment tasks to perform
+          items:
+            type: string
+            enum:
+              - download_pdf
+              - extract_text
+              - extract_tables
+              - extract_citations
+              - llm_extract_tasks
+              - llm_extract_methods
+              - llm_extract_datasets
+          default:
+            - download_pdf
+            - extract_text
+            - extract_tables
+            - extract_citations
+            - llm_extract_tasks
+            - llm_extract_methods
+            - llm_extract_datasets
+
+        llm_provider:
+          type: string
+          enum: [openai, llamacpp]
+          default: llamacpp
+          description: LLM provider for metadata extraction
+
+        priority:
+          type: string
+          enum: [low, normal, high]
+          default: normal
+
+        force_reprocess:
+          type: boolean
+          default: false
+          description: Re-process papers that already have enrichment
+
+    JobResponse:
+      type: object
+      required:
+        - job_id
+        - job_type
+        - status
+        - created_at
+      properties:
+        job_id:
+          type: string
+          example: "crawl-arxiv-20241008-143025"
+
+        job_type:
+          type: string
+          enum:
+            - crawl_arxiv
+            - crawl_conference
+            - crawl_citations
+            - enrich_metadata
+            - track_github_stars
+
+        status:
+          type: string
+          enum: [queued, processing]
+
+        created_at:
+          type: string
+          format: date-time
+
+        estimated_completion:
+          type: string
+          format: date-time
+          nullable: true
+          description: Estimated completion time
+
+        metadata:
+          type: object
+          description: Job-specific metadata
+          additionalProperties: true
+
+    JobStatus:
+      type: object
+      required:
+        - job_id
+        - job_type
+        - status
+        - created_at
+      properties:
+        job_id:
+          type: string
+
+        job_type:
+          type: string
+          enum:
+            - crawl_arxiv
+            - crawl_conference
+            - crawl_citations
+            - enrich_metadata
+            - track_github_stars
+
+        status:
+          type: string
+          enum: [queued, processing, completed, failed, cancelled]
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+        duration_seconds:
+          type: integer
+          nullable: true
+          description: Job duration in seconds (if completed)
+
+        progress:
+          type: object
+          nullable: true
+          properties:
+            total:
+              type: integer
+              description: Total items to process
+            completed:
+              type: integer
+              description: Items completed
+            failed:
+              type: integer
+              description: Items failed
+            percentage:
+              type: number
+              format: float
+              description: Completion percentage (0-100)
+
+        results:
+          type: object
+          nullable: true
+          description: Job results (format varies by job type)
+          additionalProperties: true
+
+        error:
+          type: string
+          nullable: true
+          description: Error message (if status=failed)
+
+        logs:
+          type: array
+          nullable: true
+          description: Job execution logs
+          items:
+            type: object
+            required:
+              - timestamp
+              - level
+              - message
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              level:
+                type: string
+                enum: [debug, info, warning, error]
+              message:
+                type: string
+
+    JobSummary:
+      type: object
+      required:
+        - job_id
+        - job_type
+        - status
+        - created_at
+      properties:
+        job_id:
+          type: string
+
+        job_type:
+          type: string
+
+        status:
+          type: string
+          enum: [queued, processing, completed, failed, cancelled]
+
+        created_at:
+          type: string
+          format: date-time
+
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+        duration_seconds:
+          type: integer
+          nullable: true
+
+        progress_percentage:
+          type: number
+          format: float
+          nullable: true
+
+        results_summary:
+          type: string
+          nullable: true
+          description: Brief summary of results
+          example: "Discovered 98 papers, created 87, updated 11"
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          nullable: true
