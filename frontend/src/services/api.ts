@@ -28,6 +28,7 @@ export interface Paper {
   published_date: string
   venue: string | null
   github_url: string | null
+  github_stars: number | null
   hype_score: number
   trend_label: string
 }

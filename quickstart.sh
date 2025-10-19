@@ -117,9 +117,14 @@ setup_backend() {
     print_success "Backend dependencies installed"
 
     print_info "Running database migrations..."
-    alembic upgrade head
 
-    print_success "Database schema created"
+    # Check if using Supabase (skip migrations if so)
+    if grep -q "supabase.com" .env 2>/dev/null; then
+        print_warning "Supabase detected - skipping migrations (database already configured)"
+    else
+        alembic upgrade head
+        print_success "Database schema created"
+    fi
 
     print_info "Seeding topics..."
     python scripts/seed_topics.py

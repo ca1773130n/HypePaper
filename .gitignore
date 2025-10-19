@@ -17,6 +17,7 @@ logs/
 
 # Testing
 .pytest_cache/
+.coverage
 
 # Claude Flow
 .claude-flow/
@@ -25,3 +26,4 @@ flows/
 
 # OS
 .DS_Store
+node_modules

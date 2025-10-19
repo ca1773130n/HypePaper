@@ -148,7 +148,7 @@ async def list_papers(
     sort: str = Query(
         "published_date_desc",
         description="Sort option",
-        regex="^(published_date_desc|published_date_asc|github_stars_desc|citations_desc|weekly_hype_desc|monthly_hype_desc)$"
+        regex="^(published_date_desc|published_date_asc|github_stars_desc|citations_desc|weekly_hype_desc|monthly_hype_desc|hype_score|published_date|stars|citations)$"
     ),
 
     # Filters
@@ -270,6 +270,21 @@ async def list_papers(
             query.outerjoin(GitHubMetrics)
             .order_by(GitHubMetrics.monthly_hype.desc().nulls_last())
         )
+    # Simplified sort options (for compatibility with main API)
+    elif sort == "stars":
+        # Sort by scraped GitHub stars (new), fallback to GitHubMetrics
+        from sqlalchemy import func, case
+        query = query.outerjoin(GitHubMetrics).order_by(
+            func.coalesce(Paper.github_stars_scraped, GitHubMetrics.current_stars, 0).desc(),
+            Paper.published_date.desc()  # Secondary sort
+        )
+    elif sort == "published_date":
+        query = query.order_by(Paper.published_date.desc())
+    elif sort == "hype_score":
+        # For now, sort by published_date (hype score calculation is expensive)
+        query = query.order_by(Paper.published_date.desc())
+    elif sort == "citations":
+        query = query.order_by(Paper.citation_count.desc().nulls_last())
     # citations_desc requires counting relationships - handled after fetch
 
     # Get total count
@@ -302,7 +317,14 @@ async def list_papers(
     # Build response
     items = []
     for paper in papers:
-        github_stars = paper.github_metrics.current_stars if paper.github_metrics else None
+        # Prefer scraped stars over GitHubMetrics
+        github_stars = (
+            paper.github_stars_scraped or
+            (paper.github_metrics.current_stars if paper.github_metrics else None)
+        )
+        # Debug: Check if we have valid scraped stars
+        if paper.github_url and paper.github_stars_scraped:
+            print(f"[STARS] {paper.title[:30]}... has {paper.github_stars_scraped} scraped stars")
         weekly_hype = paper.github_metrics.weekly_hype if paper.github_metrics else None
         monthly_hype = paper.github_metrics.monthly_hype if paper.github_metrics else None
 
@@ -383,8 +405,11 @@ async def get_paper(
     if not paper:
         raise HTTPException(status_code=404, detail="Paper not found")
 
-    # Calculate metrics
-    github_stars = paper.github_metrics.current_stars if paper.github_metrics else None
+    # Calculate metrics - prefer scraped stars
+    github_stars = (
+        paper.github_stars_scraped or
+        (paper.github_metrics.current_stars if paper.github_metrics else None)
+    )
     weekly_hype = paper.github_metrics.weekly_hype if paper.github_metrics else None
     monthly_hype = paper.github_metrics.monthly_hype if paper.github_metrics else None
 
