@@ -17,6 +17,7 @@ from .llm_extraction import LLMExtraction, ExtractionType, VerificationStatus
 from .admin_task_log import AdminTaskLog
 from .crawler_job import CrawlerJob
 from .citation_snapshot import CitationSnapshot
+from .vote import Vote
 
 __all__ = [
     "Base",
@@ -36,4 +37,5 @@ __all__ = [
     "AdminTaskLog",
     "CrawlerJob",
     "CitationSnapshot",
+    "Vote",
 ]

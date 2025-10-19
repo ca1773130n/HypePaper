@@ -199,10 +199,29 @@ async def trigger_crawl_sync(
         # Create new paper
         from datetime import datetime as dt
         pub_date = paper_data.get("published_date")
+
+        # Robust date parsing for ArXiv data
+        parsed_date = None
         if isinstance(pub_date, str):
-            pub_date = dt.fromisoformat(pub_date.replace('Z', '+00:00')).date()
+            try:
+                # Handle ISO format with Z suffix (e.g., "2025-10-16T17:59:59Z")
+                parsed_date = dt.fromisoformat(pub_date.replace('Z', '+00:00')).date()
+            except ValueError:
+                try:
+                    # Handle date-only format (e.g., "2025-10-16")
+                    parsed_date = dt.fromisoformat(pub_date).date()
+                except ValueError:
+                    print(f"Warning: Could not parse date '{pub_date}' for paper {paper_data.get('title', 'Unknown')}")
+                    parsed_date = None
         elif isinstance(pub_date, dt):
-            pub_date = pub_date.date()
+            parsed_date = pub_date.date()
+
+        # If parsing failed, skip this paper to avoid bad data
+        if parsed_date is None:
+            print(f"Skipping paper due to invalid date: {paper_data.get('title', 'Unknown')}")
+            continue
+
+        pub_date = parsed_date
 
         paper = Paper(
             id=uuid.uuid4(),
@@ -606,4 +625,90 @@ async def list_jobs(
         "page": page,
         "page_size": page_size,
         "message": "Job listing requires job metadata storage (not yet implemented)",
+    }
+
+
+@router.post("/sync-database", response_model=dict, status_code=202)
+async def sync_database(
+    db: AsyncSession = Depends(get_db)
+) -> dict:
+    """Trigger comprehensive database synchronization.
+
+    This endpoint:
+    1. Enriches all existing papers (GitHub URLs, citations, author info)
+    2. Extracts and creates Author records from paper author lists
+    3. Updates paper enrichment fields (quick_summary, key_ideas, etc.)
+    4. Syncs all data to Supabase
+
+    Returns:
+        Job ID and status
+    """
+    from sqlalchemy import select, func
+    from ...models import Paper
+    from ...services.paper_enrichment import PaperEnrichmentService
+    from ...services.author_extractor import AuthorExtractorService
+
+    # Get count of papers to sync
+    result = await db.execute(select(func.count()).select_from(Paper))
+    total_papers = result.scalar()
+
+    if total_papers == 0:
+        return {
+            "message": "No papers in database to sync",
+            "total_papers": 0,
+            "status": "skipped"
+        }
+
+    # For now, run synchronously (in production, use Celery background job)
+    # This allows immediate testing without Celery worker setup
+
+    enrichment_service = PaperEnrichmentService()
+    author_service = AuthorExtractorService()
+
+    enriched_count = 0
+    authors_created = 0
+    errors = []
+
+    # Fetch all papers in batches
+    batch_size = 50
+    offset = 0
+
+    while True:
+        papers_result = await db.execute(
+            select(Paper).limit(batch_size).offset(offset)
+        )
+        papers = papers_result.scalars().all()
+
+        if not papers:
+            break
+
+        for paper in papers:
+            try:
+                # 1. Enrich paper (GitHub URL, citations, etc.)
+                await enrichment_service.enrich_paper(paper)
+
+                # 2. Extract and create author records
+                new_authors = await author_service.extract_authors_from_paper(paper, db)
+                authors_created += len(new_authors)
+
+                enriched_count += 1
+
+            except Exception as e:
+                errors.append(f"Paper {paper.id}: {str(e)}")
+                continue
+
+        # Commit batch
+        await db.commit()
+        offset += batch_size
+
+    return {
+        "job_id": str(uuid4()),
+        "status": "completed",
+        "message": "Database synchronization completed",
+        "results": {
+            "total_papers": total_papers,
+            "enriched_papers": enriched_count,
+            "authors_created": authors_created,
+            "errors": errors[:10]  # Return first 10 errors only
+        }
     }
