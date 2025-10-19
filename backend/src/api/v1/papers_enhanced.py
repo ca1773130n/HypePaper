@@ -1,6 +1,7 @@
 """Enhanced paper endpoints with star history, hype scores, and PDF download."""
 from typing import Dict, List, Any, Optional
 from uuid import UUID
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -13,6 +14,10 @@ from ...models import Paper, PaperReference, GitHubStarSnapshot, CitationSnapsho
 from ...services.pdf_service import PDFService
 
 router = APIRouter(prefix="/papers", tags=["Papers Enhanced"])
+
+# Simple in-memory cache for hype scores (1 hour TTL)
+hype_cache: Dict[str, Dict] = {}
+cache_ttl = 3600  # 1 hour in seconds
 
 
 class StarHistoryPoint(BaseModel):
@@ -43,6 +48,56 @@ class ReferenceNode(BaseModel):
     authors: List[str]
     year: Optional[int]
     relationship: str  # "cites" or "cited_by"
+
+
+class MetricPoint(BaseModel):
+    """Metric snapshot data point."""
+    snapshot_date: str
+    citation_count: Optional[int] = None
+    github_stars: Optional[int] = None
+    vote_count: Optional[int] = None
+    hype_score: Optional[float] = None
+
+
+@router.get("/{paper_id}/metrics", response_model=List[MetricPoint])
+async def get_metrics(
+    paper_id: UUID,
+    days: int = 30,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get metrics history for a paper."""
+    from datetime import datetime, timedelta
+    from ...models import MetricSnapshot
+
+    # Check paper exists
+    result = await db.execute(select(Paper).where(Paper.id == paper_id))
+    paper = result.scalar_one_or_none()
+    if not paper:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    # Get metric snapshots
+    since_date = datetime.utcnow() - timedelta(days=days)
+
+    snapshots_result = await db.execute(
+        select(MetricSnapshot)
+        .where(
+            MetricSnapshot.paper_id == paper_id,
+            MetricSnapshot.snapshot_date >= since_date
+        )
+        .order_by(MetricSnapshot.snapshot_date)
+    )
+    snapshots = snapshots_result.scalars().all()
+
+    return [
+        MetricPoint(
+            snapshot_date=snap.snapshot_date.isoformat(),
+            citation_count=snap.citation_count,
+            github_stars=snap.github_stars,
+            vote_count=snap.vote_count,
+            hype_score=snap.hype_score
+        )
+        for snap in snapshots
+    ]
 
 
 @router.get("/{paper_id}/star-history", response_model=List[StarHistoryPoint])
@@ -87,26 +142,42 @@ async def get_hype_scores(
     paper_id: UUID,
     db: AsyncSession = Depends(get_db)
 ):
-    """Calculate and return hype scores."""
-    result = await db.execute(select(Paper).where(Paper.id == paper_id))
-    paper = result.scalar_one_or_none()
+    """Calculate and return hype scores (cached for 1 hour)."""
+    from datetime import date
+
+    # Check cache first
+    cache_key = str(paper_id)
+    now = datetime.utcnow()
+    if cache_key in hype_cache:
+        cached_entry = hype_cache[cache_key]
+        if (now - cached_entry['timestamp']).total_seconds() < cache_ttl:
+            return cached_entry['data']
+
+    # Single optimized query to get paper and all star snapshots we need
+    paper_result = await db.execute(select(Paper).where(Paper.id == paper_id))
+    paper = paper_result.scalar_one_or_none()
     if not paper:
         raise HTTPException(status_code=404, detail="Paper not found")
 
-    # Get latest star count
-    latest_snap_result = await db.execute(
+    # Get all star snapshots for the last 30 days in one query (covers weekly and monthly)
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+
+    all_snaps_result = await db.execute(
         select(GitHubStarSnapshot)
-        .where(GitHubStarSnapshot.paper_id == paper_id)
+        .where(
+            GitHubStarSnapshot.paper_id == paper_id,
+            GitHubStarSnapshot.snapshot_date >= thirty_days_ago
+        )
         .order_by(GitHubStarSnapshot.snapshot_date.desc())
-        .limit(1)
     )
-    latest_snap = latest_snap_result.scalar_one_or_none()
-    stars = latest_snap.star_count if latest_snap else 0
+    all_snaps = list(all_snaps_result.scalars().all())
+
+    # Get current stars (latest snapshot)
+    stars = all_snaps[0].star_count if all_snaps else 0
 
     # Calculate age in days
-    from datetime import datetime, date
     if paper.published_date:
-        # Convert date to datetime if needed
         if isinstance(paper.published_date, date) and not isinstance(paper.published_date, datetime):
             pub_datetime = datetime.combine(paper.published_date, datetime.min.time())
         else:
@@ -117,45 +188,43 @@ async def get_hype_scores(
     age_days = max(age_days, 1)
 
     # SOTAPapers formula: (citations * 100 + stars) / age_days
-    citations = paper.citations or 0
+    citations = paper.citation_count or 0
     average_hype = (citations * 100 + stars) / age_days
 
-    # Weekly hype (last 7 days growth)
-    weekly_snap_result = await db.execute(
-        select(GitHubStarSnapshot)
-        .where(
-            GitHubStarSnapshot.paper_id == paper_id,
-            GitHubStarSnapshot.snapshot_date >= datetime.utcnow() - timedelta(days=7)
-        )
-        .order_by(GitHubStarSnapshot.snapshot_date)
-    )
-    weekly_snaps = weekly_snap_result.scalars().all()
+    # Filter snapshots for weekly and monthly calculations
+    weekly_snaps = [snap for snap in all_snaps if snap.snapshot_date >= seven_days_ago]
+    monthly_snaps = all_snaps  # Already filtered to 30 days
+
+    # Calculate weekly hype (last 7 days growth)
     weekly_hype = 0.0
     if len(weekly_snaps) >= 2:
+        # Sort by date (oldest first) for growth calculation
+        weekly_snaps.sort(key=lambda x: x.snapshot_date)
         star_growth = weekly_snaps[-1].star_count - weekly_snaps[0].star_count
         weekly_hype = star_growth / 7
 
-    # Monthly hype (last 30 days growth)
-    monthly_snap_result = await db.execute(
-        select(GitHubStarSnapshot)
-        .where(
-            GitHubStarSnapshot.paper_id == paper_id,
-            GitHubStarSnapshot.snapshot_date >= datetime.utcnow() - timedelta(days=30)
-        )
-        .order_by(GitHubStarSnapshot.snapshot_date)
-    )
-    monthly_snaps = monthly_snap_result.scalars().all()
+    # Calculate monthly hype (last 30 days growth)
     monthly_hype = 0.0
     if len(monthly_snaps) >= 2:
+        # Sort by date (oldest first) for growth calculation
+        monthly_snaps.sort(key=lambda x: x.snapshot_date)
         star_growth = monthly_snaps[-1].star_count - monthly_snaps[0].star_count
         monthly_hype = star_growth / 30
 
-    return HypeScoresResponse(
+    response = HypeScoresResponse(
         average_hype=round(average_hype, 2),
         weekly_hype=round(weekly_hype, 2),
         monthly_hype=round(monthly_hype, 2),
         formula_explanation=f"Average: (citations×100 + stars) / age_days = ({citations}×100 + {stars}) / {age_days}"
     )
+
+    # Cache the result
+    hype_cache[cache_key] = {
+        'data': response,
+        'timestamp': now
+    }
+
+    return response
 
 
 @router.get("/{paper_id}/references", response_model=List[ReferenceNode])

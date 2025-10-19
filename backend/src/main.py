@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import papers
+from .api import papers, votes, authors
 from .api.v1 import citations, github, health, jobs, auth, admin, topics, papers_enhanced
 from .api.v1 import papers as papers_v1
 from .middleware.error_handler import ErrorHandlerMiddleware, RequestLoggingMiddleware
@@ -71,6 +71,10 @@ app.include_router(topics.router, prefix="/api/v1")
 
 # Include legacy routers (for backward compatibility)
 app.include_router(papers.router)
+
+# Feature 003: Voting & Enrichment endpoints
+app.include_router(votes.router)
+app.include_router(authors.router)
 
 
 @app.get("/")

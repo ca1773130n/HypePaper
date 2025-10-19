@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from .github_metrics import GitHubMetrics
     from .pdf_content import PDFContent
     from .llm_extraction import LLMExtraction
+    from .vote import Vote
 
 
 class Paper(Base):
@@ -231,6 +232,50 @@ class Paper(Base):
     )
 
     # ============================================================
+    # VOTING & ENRICHMENT FIELDS (Feature 003)
+    # ============================================================
+
+    # Vote tracking (denormalized for performance)
+    vote_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default=text("0"),
+        comment="Net votes (upvotes - downvotes), updated by trigger"
+    )
+
+    # Content enrichment fields
+    quick_summary: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Brief paper summary (1-2 sentences)"
+    )
+
+    key_ideas: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Main contributions and key ideas"
+    )
+
+    quantitative_performance: Mapped[Optional[dict]] = mapped_column(
+        JSONB,
+        nullable=True,
+        comment="Numerical results: {metric: value, baseline: value}"
+    )
+
+    qualitative_performance: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Descriptive performance results"
+    )
+
+    # Note: limitations field already exists in the legacy section above
+
+    # GitHub scraping (scraped from repo page)
+    github_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    github_stars_scraped: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    # ============================================================
     # RELATIONSHIPS
     # ============================================================
 
@@ -294,6 +339,14 @@ class Paper(Base):
         back_populates="paper",
         cascade="all, delete-orphan",
         doc="Historical citation count snapshots"
+    )
+
+    # New relationships (Feature 003)
+    votes: Mapped[list["Vote"]] = relationship(
+        "Vote",
+        back_populates="paper",
+        cascade="all, delete-orphan",
+        doc="User votes on this paper"
     )
 
     # ============================================================
@@ -370,10 +423,8 @@ class Paper(Base):
     # COMPUTED PROPERTIES
     # ============================================================
 
-    @property
-    def citation_count(self) -> int:
-        """Total citations (incoming references)."""
-        return len(self.citations_in)
+    # NOTE: citation_count is a database column (line 226), not a computed property
+    # The column tracks the count from Google Scholar, not len(citations_in)
 
     @property
     def reference_count(self) -> int:
@@ -391,6 +442,17 @@ class Paper(Base):
         if self.github_metrics:
             return self.github_metrics.current_stars
         return None
+
+    @property
+    def net_votes(self) -> int:
+        """Calculate net votes from vote records (for verification).
+
+        This computes the actual vote count from the votes relationship.
+        Should match the denormalized vote_count field.
+        """
+        upvotes = sum(1 for v in self.votes if v.vote_type == "upvote")
+        downvotes = sum(1 for v in self.votes if v.vote_type == "downvote")
+        return upvotes - downvotes
 
     def __repr__(self) -> str:
         """String representation."""

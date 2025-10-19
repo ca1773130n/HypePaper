@@ -1,12 +1,78 @@
 # Claude Code Configuration - SPARC Development Environment
 
+## 🧪 TESTING REQUIREMENTS (CRITICAL)
+
+**ALWAYS test implementations end-to-end before marking as complete:**
+
+1. **New API Endpoints**: Test with curl immediately after creation
+   - Example: `curl -s http://localhost:8000/api/endpoint | python3 -m json.tool`
+   - Verify response status codes (200, 404, 500, etc.)
+   - Check response data structure matches schema
+   - Test error cases
+
+2. **New Database Columns/Tables**: ALWAYS migrate both local AND production
+   - Local: `alembic upgrade head`
+   - Production: Verify migration applied to Supabase
+   - Test queries using new columns
+
+3. **New Features**: Test the complete user flow
+   - Frontend button clicks → API calls → Database updates
+   - Check browser console for errors
+   - Verify data persistence
+
+4. **NEVER assume it works** - Test everything yourself
+
+## 🔄 COMMIT REQUIREMENTS (CRITICAL)
+
+**MANDATORY GIT COMMIT RULES:**
+
+1. **Commit After Every Important Implementation**: Never leave significant implementations uncommitted
+   - Commit immediately after implementing core functionality
+   - Commit after fixing bugs or adding features
+   - Commit after adding new service classes or API endpoints
+   - Commit after completing test suites
+
+2. **Include ALL Source Code Files**: Never partial commit implementations
+   - Add ALL new service files, models, APIs that were created
+   - Add ALL modified files that are part of the implementation
+   - Add ALL test files and configuration updates
+   - Include database migrations and schema changes
+
+3. **Detailed Commit Messages**: Explain what was implemented and why
+   - Use conventional commit format: `feat:`, `fix:`, `refactor:`, etc.
+   - List all new files and major changes in commit body
+   - Explain the problem solved and approach taken
+   - Include test results and validation steps
+
+4. **Incremental Commits**: Break large features into logical commits
+   - One commit per major component (services, models, APIs, tests)
+   - Commit working states, not broken intermediate states
+   - Each commit should be deployable and testable
+
+**Example Good Commit Workflow:**
+```bash
+# Commit 1: Core services
+git add src/services/ && git commit -m "feat: add GitHub validation services"
+
+# Commit 2: API integration
+git add src/api/ && git commit -m "feat: integrate GitHub services with papers API"
+
+# Commit 3: Tests and validation
+git add tests/ && git commit -m "test: add comprehensive GitHub validation tests"
+
+# Commit 4: Configuration updates
+git add *.md requirements.txt && git commit -m "docs: update requirements and documentation"
+```
+
 ## 🚨 CRITICAL: CONCURRENT EXECUTION & FILE MANAGEMENT
 
 **ABSOLUTE RULES**:
 1. ALL operations MUST be concurrent/parallel in a single message
 2. **NEVER save working files, text/mds and tests to the root folder**
-3. ALWAYS organize files in appropriate subdirectories
-4. **USE CLAUDE CODE'S TASK TOOL** for spawning agents concurrently, not just MCP
+3. **NEVER create intermediate documents in the project root directory**
+4. **ALWAYS remove any temporary documents from project root after tasks**
+5. ALWAYS organize files in appropriate subdirectories
+6. **USE CLAUDE CODE'S TASK TOOL** for spawning agents concurrently, not just MCP
 
 ### ⚡ GOLDEN RULE: "1 MESSAGE = ALL RELATED OPERATIONS"
 
@@ -41,9 +107,16 @@
 - `/src` - Source code files
 - `/tests` - Test files
 - `/docs` - Documentation and markdown files
+- `/docs/working` - Temporary working documents (auto-cleanup)
 - `/config` - Configuration files
 - `/scripts` - Utility scripts
 - `/examples` - Example code
+
+**Intermediate Document Management:**
+- All temporary/intermediate documents must go in `/docs/working/`
+- Clean up temporary documents immediately after task completion
+- Never leave `.md`, `.txt`, `.json` files in project root
+- Use organized subdirectories for all persistent documentation
 
 ## Project Overview
 

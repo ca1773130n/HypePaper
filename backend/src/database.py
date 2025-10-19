@@ -19,12 +19,14 @@ engine = create_async_engine(
     DATABASE_URL,
     echo=False,  # Set to True for SQL query logging
     future=True,
-    pool_size=20,  # Number of connections to maintain
-    max_overflow=10,  # Additional connections beyond pool_size
+    pool_size=3,  # Reduced for session pooler
+    max_overflow=2,  # Reduced for session pooler
     pool_pre_ping=True,  # Verify connections before using
     pool_recycle=3600,  # Recycle connections after 1 hour
     pool_timeout=30,  # Timeout for getting connection from pool
-    # Use NullPool for testing environments
+    # Disable prepared statements for Supabase transaction pooler
+    connect_args={"statement_cache_size": 0},
+    # Use NullPool only for testing environments
     poolclass=NullPool if os.getenv("TESTING") == "1" else None,
 )
 

@@ -1,0 +1,134 @@
+openapi: 3.0.3
+info:
+  title: Authors API
+  description: API for author information and statistics
+  version: 1.0.0
+
+paths:
+  /api/authors/{author_id}:
+    get:
+      summary: Get author details
+      description: Retrieve author information including statistics and recent papers
+      operationId: getAuthor
+      parameters:
+        - name: author_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Author details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorDetail'
+        '404':
+          description: Author not found
+
+  /api/authors/search:
+    get:
+      summary: Search authors by name
+      description: Find authors by name prefix or full name
+      operationId: searchAuthors
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuthorSummary'
+
+components:
+  schemas:
+    AuthorDetail:
+      type: object
+      required:
+        - id
+        - name
+        - paper_count
+        - total_citation_count
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        primary_affiliation:
+          type: string
+          nullable: true
+        affiliation_history:
+          type: array
+          items:
+            type: string
+        paper_count:
+          type: integer
+          minimum: 0
+        total_citation_count:
+          type: integer
+          minimum: 0
+        email:
+          type: string
+          format: email
+          nullable: true
+        website_url:
+          type: string
+          format: uri
+          nullable: true
+        latest_paper:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            title:
+              type: string
+            published_date:
+              type: string
+              format: date
+        recent_papers:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              title:
+                type: string
+              published_date:
+                type: string
+                format: date
+
+    AuthorSummary:
+      type: object
+      required:
+        - id
+        - name
+        - paper_count
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        primary_affiliation:
+          type: string
+          nullable: true
+        paper_count:
+          type: integer

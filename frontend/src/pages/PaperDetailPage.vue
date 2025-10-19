@@ -1,5 +1,29 @@
 <template>
-  <div v-if="paper" class="min-h-screen bg-[#0A0F1E]">
+  <!-- Loading State -->
+  <div v-if="loading" class="min-h-screen bg-[#0A0F1E] flex items-center justify-center">
+    <div class="text-center">
+      <div class="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4"></div>
+      <p class="text-gray-400">Loading paper details...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div v-else-if="error" class="min-h-screen bg-[#0A0F1E] flex items-center justify-center">
+    <div class="text-center max-w-md mx-auto px-4">
+      <div class="text-6xl mb-4">😞</div>
+      <h2 class="text-2xl font-bold text-gray-200 mb-2">Paper Not Found</h2>
+      <p class="text-gray-400 mb-6">{{ error }}</p>
+      <button
+        @click="router.push('/')"
+        class="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all"
+      >
+        Back to Home
+      </button>
+    </div>
+  </div>
+
+  <!-- Paper Content -->
+  <div v-else-if="paper" class="min-h-screen bg-[#0A0F1E]">
     <!-- Animated Background -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none">
       <div class="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
@@ -55,12 +79,31 @@
     <!-- Main Content -->
     <main class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div class="mb-6">
-      <h1 class="text-3xl font-bold mb-3 text-white">{{ paper.title }}</h1>
-      <div class="flex flex-wrap gap-2 mb-2">
-        <span v-for="(author, index) in parseAuthors(paper.authors)" :key="index" class="px-3 py-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full text-sm text-gray-300">
-          {{ author }}
-        </span>
+      <div class="flex items-start justify-between gap-6 mb-3">
+        <h1 class="text-3xl font-bold text-white flex-1">{{ paper.title }}</h1>
+        <VoteButton
+          :paper-id="paper.id"
+          :initial-vote-count="paper.vote_count || 0"
+          :initial-user-vote="null"
+        />
       </div>
+      <div class="flex flex-wrap gap-2 mb-2">
+        <button
+          v-for="(author, index) in parseAuthors(paper.authors)"
+          :key="index"
+          @click="openAuthorModal(author)"
+          class="px-3 py-1 bg-white/5 backdrop-blur-xl border border-white/10 hover:border-purple-500/50 rounded-full text-sm text-gray-300 hover:text-purple-300 transition-all cursor-pointer"
+        >
+          {{ author }}
+        </button>
+      </div>
+
+      <!-- Author Modal -->
+      <AuthorModal
+        :is-open="isAuthorModalOpen"
+        :author-id="selectedAuthorId"
+        @close="closeAuthorModal"
+      />
       <p class="text-sm text-gray-500">Published: {{ formatDate(paper.published_date) }}</p>
 
       <!-- Icon Links Section -->
@@ -101,10 +144,71 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <!-- Main Content -->
       <div class="md:col-span-2 space-y-6">
-        <!-- Abstract -->
+        <!-- Quick Summary (if available) -->
+        <div v-if="paper.quick_summary" class="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-6">
+          <h2 class="text-xl font-semibold mb-3 text-purple-300">Quick Summary</h2>
+          <p class="text-gray-300">{{ paper.quick_summary }}</p>
+        </div>
+
+        <!-- Abstract with clickable links -->
         <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg p-6">
           <h2 class="text-xl font-semibold mb-3 text-white">Abstract</h2>
-          <p class="text-gray-300">{{ paper.abstract }}</p>
+          <AbstractWithLinks :abstract="paper.abstract" />
+        </div>
+
+        <!-- Metrics Trends -->
+        <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg p-6">
+          <h2 class="text-xl font-semibold mb-4 text-white">Metrics Trends (Last 30 Days)</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 class="text-sm font-medium text-gray-400 mb-3">Citations</h3>
+              <MetricGraph :paper-id="paper.id" metric-type="citations" :days="30" />
+            </div>
+            <div>
+              <h3 class="text-sm font-medium text-gray-400 mb-3">GitHub Stars</h3>
+              <MetricGraph :paper-id="paper.id" metric-type="stars" :days="30" />
+            </div>
+            <div>
+              <h3 class="text-sm font-medium text-gray-400 mb-3">Net Votes</h3>
+              <MetricGraph :paper-id="paper.id" metric-type="votes" :days="30" />
+            </div>
+            <div>
+              <h3 class="text-sm font-medium text-gray-400 mb-3">Hype Score</h3>
+              <MetricGraph :paper-id="paper.id" metric-type="hype_score" :days="30" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Ideas (if available) -->
+        <div v-if="paper.key_ideas" class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg p-6">
+          <h2 class="text-xl font-semibold mb-3 text-white">Key Ideas</h2>
+          <p class="text-gray-300 whitespace-pre-line">{{ paper.key_ideas }}</p>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div v-if="paper.quantitative_performance || paper.qualitative_performance" class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg p-6">
+          <h2 class="text-xl font-semibold mb-3 text-white">Performance</h2>
+
+          <div v-if="paper.quantitative_performance" class="mb-4">
+            <h3 class="text-lg font-medium mb-2 text-blue-300">Quantitative Results</h3>
+            <div class="space-y-2">
+              <div v-for="(value, key) in paper.quantitative_performance" :key="key" class="flex justify-between items-center p-3 bg-blue-500/10 border border-blue-500/20 rounded">
+                <span class="text-gray-300">{{ key }}</span>
+                <span class="text-white font-medium">{{ value }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="paper.qualitative_performance">
+            <h3 class="text-lg font-medium mb-2 text-green-300">Qualitative Results</h3>
+            <p class="text-gray-300 whitespace-pre-line">{{ paper.qualitative_performance }}</p>
+          </div>
+        </div>
+
+        <!-- Limitations -->
+        <div v-if="paper.limitations" class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg p-6">
+          <h2 class="text-xl font-semibold mb-3 text-white">Limitations</h2>
+          <p class="text-gray-300 whitespace-pre-line">{{ paper.limitations }}</p>
         </div>
 
         <!-- Star History Chart -->
@@ -199,6 +303,10 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { FileText, Github, Globe, Youtube, Link2, Copy, Download } from 'lucide-vue-next'
 import { Chart, registerables } from 'chart.js'
+import VoteButton from '@/components/VoteButton.vue'
+import AuthorModal from '@/components/AuthorModal.vue'
+import MetricGraph from '@/components/MetricGraph.vue'
+import AbstractWithLinks from '@/components/AbstractWithLinks.vue'
 
 Chart.register(...registerables)
 
@@ -207,6 +315,9 @@ const router = useRouter()
 const authStore = useAuthStore()
 const apiUrl = import.meta.env.VITE_API_URL
 const paper = ref<any>(null)
+const loading = ref(true)
+const error = ref<string | null>(null)
+const chartsLoading = ref(true)
 const starHistory = ref<any[]>([])
 const citationHistory = ref<any[]>([])
 const hypeScores = ref<any>(null)
@@ -214,33 +325,80 @@ const references = ref<any[]>([])
 const starChartCanvas = ref<HTMLCanvasElement | null>(null)
 const citationChartCanvas = ref<HTMLCanvasElement | null>(null)
 const bibtexCopied = ref(false)
+const isAuthorModalOpen = ref(false)
+const selectedAuthorId = ref<number | null>(null)
+
+// Simple cache for paper data
+const paperCache = new Map()
 
 let starChart: Chart | null = null
 let citationChart: Chart | null = null
 
 async function loadPaper() {
   const paperId = route.params.id
+  loading.value = true
+  error.value = null
+
   try {
-    const [paperRes, historyRes, citationHistRes, scoresRes, refsRes] = await Promise.all([
-      axios.get(`${apiUrl}/api/v1/papers/${paperId}`),
+    // Check cache first
+    if (paperCache.has(paperId)) {
+      const cachedData = paperCache.get(paperId)
+      paper.value = cachedData.paper
+      starHistory.value = cachedData.starHistory
+      citationHistory.value = cachedData.citationHistory
+      hypeScores.value = cachedData.hypeScores
+      references.value = cachedData.references
+      loading.value = false
+      chartsLoading.value = false
+
+      // Render charts from cache
+      await nextTick()
+      renderStarChart()
+      renderCitationChart()
+      return
+    }
+
+    // Phase 1: Load essential paper data first (fast)
+    const paperRes = await axios.get(`${apiUrl}/api/v1/papers/${paperId}`)
+    paper.value = paperRes.data
+    loading.value = false // Show paper content immediately
+
+    // Phase 2: Load secondary data in background (charts, references, etc.)
+    const [historyRes, citationHistRes, scoresRes, refsRes] = await Promise.all([
       axios.get(`${apiUrl}/api/v1/papers/${paperId}/star-history`).catch(() => ({ data: [] })),
       axios.get(`${apiUrl}/api/v1/papers/${paperId}/citation-history`).catch(() => ({ data: [] })),
       axios.get(`${apiUrl}/api/v1/papers/${paperId}/hype-scores`).catch(() => ({ data: null })),
       axios.get(`${apiUrl}/api/v1/papers/${paperId}/references`).catch(() => ({ data: [] }))
     ])
 
-    paper.value = paperRes.data
     starHistory.value = historyRes.data
     citationHistory.value = citationHistRes.data
     hypeScores.value = scoresRes.data
     references.value = refsRes.data
 
-    // Wait for DOM update then render charts
+    // Cache the data for future visits
+    paperCache.set(paperId, {
+      paper: paper.value,
+      starHistory: starHistory.value,
+      citationHistory: citationHistory.value,
+      hypeScores: hypeScores.value,
+      references: references.value
+    })
+
+    // Phase 3: Render charts after data is loaded (defer heavy operations)
     await nextTick()
-    renderStarChart()
-    renderCitationChart()
-  } catch (error) {
-    console.error('Failed to load paper:', error)
+    setTimeout(() => {
+      renderStarChart()
+      renderCitationChart()
+      chartsLoading.value = false
+    }, 100) // Small delay to avoid blocking UI
+
+  } catch (err: any) {
+    console.error('Failed to load paper:', err)
+    error.value = err.response?.status === 404
+      ? 'Paper not found. It may have been removed or the link is incorrect.'
+      : 'Failed to load paper details. Please try again later.'
+    loading.value = false
   }
 }
 
@@ -411,6 +569,29 @@ const navigateToLogin = () => {
 const handleSignOut = async () => {
   await authStore.signOut()
   router.push('/')
+}
+
+const openAuthorModal = async (authorName: string) => {
+  // For now, we'll use a simple approach - in a real implementation,
+  // we'd need to fetch the author ID from the backend
+  // For demonstration, we'll just show the modal (it will handle fetching)
+  try {
+    // Search for author by name to get ID
+    const response = await axios.get(`${apiUrl}/api/authors/`, {
+      params: { q: authorName, limit: 1 }
+    })
+    if (response.data && response.data.authors && response.data.authors.length > 0) {
+      selectedAuthorId.value = response.data.authors[0].id
+      isAuthorModalOpen.value = true
+    }
+  } catch (error) {
+    console.error('Failed to find author:', error)
+  }
+}
+
+const closeAuthorModal = () => {
+  isAuthorModalOpen.value = false
+  selectedAuthorId.value = null
 }
 
 onMounted(() => {

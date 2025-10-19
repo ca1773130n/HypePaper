@@ -48,9 +48,13 @@ class PaperService:
         if sort_by == "recency":
             query = query.order_by(Paper.published_date.desc())
         elif sort_by == "stars":
-            # For MVP, we'll sort by published_date as fallback
-            # Will be replaced with actual star count from metrics
-            query = query.order_by(Paper.published_date.desc())
+            # Sort by GitHub stars (scraped) in descending order
+            # Use COALESCE to handle NULL values, putting them at the end
+            from sqlalchemy import func
+            query = query.order_by(
+                func.coalesce(Paper.github_stars_scraped, 0).desc(),
+                Paper.published_date.desc()  # Secondary sort for tie-breaking
+            )
         elif sort_by == "hype_score":
             # For MVP, we'll sort by published_date as fallback
             # Will be replaced with calculated hype score

@@ -27,8 +27,11 @@ class PaperListItem(BaseModel):
     published_date: str
     venue: Optional[str] = None
     github_url: Optional[str] = None
+    github_stars: Optional[int] = None  # GitHub stars (scraped)
     hype_score: float
     trend_label: str
+    vote_count: int = 0  # Feature 003: voting
+    quick_summary: Optional[str] = None  # Feature 003: enrichment
 
     class Config:
         """Pydantic config."""
@@ -65,6 +68,22 @@ class PaperDetailResponse(BaseModel):
     trend_label: str
     created_at: str
 
+    # Feature 003: Voting & Enrichment
+    vote_count: int = 0
+    quick_summary: Optional[str] = None
+    key_ideas: Optional[str] = None
+    quantitative_performance: Optional[dict] = None
+    qualitative_performance: Optional[str] = None
+    limitations: Optional[str] = None
+
+    # Additional URLs from enrichment
+    youtube_url: Optional[str] = None
+    project_page_url: Optional[str] = None
+
+    # Citation count
+    citations: Optional[int] = None
+    github_stars: Optional[int] = None
+
     class Config:
         """Pydantic config."""
         from_attributes = True
@@ -76,6 +95,8 @@ class MetricSnapshot(BaseModel):
     snapshot_date: str
     github_stars: Optional[int] = None
     citation_count: Optional[int] = None
+    vote_count: Optional[int] = None  # Feature 003
+    hype_score: Optional[float] = None  # Feature 003
 
 
 class PaperMetricsResponse(BaseModel):
@@ -154,8 +175,11 @@ async def get_papers(
                 published_date=paper.published_date.isoformat(),
                 venue=paper.venue,
                 github_url=paper.github_url,
+                github_stars=paper.github_stars_scraped or hype_data["current_stars"],
                 hype_score=hype_data["hype_score"],
                 trend_label=hype_data["trend_label"],
+                vote_count=paper.vote_count,
+                quick_summary=paper.quick_summary,
             )
         )
 
@@ -216,6 +240,16 @@ async def get_paper_by_id(
         current_stars=hype_data["current_stars"],
         trend_label=hype_data["trend_label"],
         created_at=paper.created_at.isoformat(),
+        vote_count=paper.vote_count,
+        quick_summary=paper.quick_summary,
+        key_ideas=paper.key_ideas,
+        quantitative_performance=paper.quantitative_performance,
+        qualitative_performance=paper.qualitative_performance,
+        limitations=paper.limitations,
+        youtube_url=paper.youtube_url,
+        project_page_url=paper.project_page_url,
+        citations=paper.citation_count,
+        github_stars=paper.github_stars_scraped or hype_data["current_stars"],  # Prefer scraped stars
     )
 
 
@@ -256,6 +290,8 @@ async def get_paper_metrics(
                 snapshot_date=m.snapshot_date.isoformat(),
                 github_stars=m.github_stars,
                 citation_count=m.citation_count,
+                vote_count=m.vote_count,
+                hype_score=m.hype_score,
             )
             for m in metrics
         ],
