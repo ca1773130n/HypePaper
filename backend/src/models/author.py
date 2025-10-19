@@ -36,7 +36,7 @@ class Author(Base):
     name: Mapped[str] = mapped_column(
         String(200),
         nullable=False,
-        unique=True,
+        # unique=True removed for Feature 003 - allow name+affiliation disambiguation
         index=True,
         comment="Full author name (normalized)"
     )
@@ -48,12 +48,6 @@ class Author(Base):
         comment="List of institutions: ['MIT', 'Stanford', ...]"
     )
 
-    countries: Mapped[Optional[list]] = mapped_column(
-        JSONB,
-        nullable=True,
-        comment="List of countries: ['USA', 'UK', ...]"
-    )
-
     # Statistics
     paper_count: Mapped[int] = mapped_column(
         Integer,
@@ -61,6 +55,34 @@ class Author(Base):
         server_default=text("0"),
         nullable=False,
         comment="Total papers authored"
+    )
+
+    # NEW FIELDS (Feature 003)
+    total_citation_count: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+        server_default=text("0"),
+        nullable=False,
+        comment="Sum of citations from all author's papers"
+    )
+
+    latest_paper_id: Mapped[Optional[UUID]] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("papers.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="Reference to most recent paper"
+    )
+
+    email: Mapped[Optional[str]] = mapped_column(
+        String(200),
+        nullable=True,
+        comment="Author email address"
+    )
+
+    website_url: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True,
+        comment="Personal or lab website URL"
     )
 
     # Timestamps
@@ -81,6 +103,12 @@ class Author(Base):
         back_populates="authors_rel"
     )
 
+    latest_paper: Mapped[Optional["Paper"]] = relationship(
+        "Paper",
+        foreign_keys=[latest_paper_id],
+        uselist=False
+    )
+
     __table_args__ = (
         Index(
             "idx_authors_name_fts",
@@ -94,8 +122,18 @@ class Author(Base):
         ),
     )
 
+    @property
+    def primary_affiliation(self) -> Optional[str]:
+        """Get most recent affiliation."""
+        return self.affiliations[0] if self.affiliations else None
+
+    @property
+    def avg_citations_per_paper(self) -> float:
+        """Average citations per paper."""
+        return self.total_citation_count / self.paper_count if self.paper_count > 0 else 0.0
+
     def __repr__(self) -> str:
-        return f"<Author({self.name}): {self.paper_count} papers>"
+        return f"<Author({self.name}): {self.paper_count} papers, {self.total_citation_count} citations>"
 
 
 class PaperAuthor(Base):

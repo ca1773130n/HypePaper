@@ -1,0 +1,170 @@
+openapi: 3.0.3
+info:
+  title: Papers API (Extended)
+  description: Extended paper endpoints with vote counts and enriched content
+  version: 1.0.0
+
+paths:
+  /api/papers/{paper_id}:
+    get:
+      summary: Get paper details
+      description: Retrieve paper with vote count, author affiliations, and enriched content
+      operationId: getPaper
+      parameters:
+        - name: paper_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Paper details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperDetail'
+        '404':
+          description: Paper not found
+
+  /api/papers/{paper_id}/metrics:
+    get:
+      summary: Get time-series metrics for paper
+      description: Retrieve daily metric snapshots (citations, stars, votes, hype score)
+      operationId: getPaperMetrics
+      parameters:
+        - name: paper_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+            minimum: 1
+            maximum: 365
+      responses:
+        '200':
+          description: Metric snapshots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MetricSnapshot'
+
+components:
+  schemas:
+    PaperDetail:
+      type: object
+      required:
+        - id
+        - title
+        - authors
+        - abstract
+        - published_date
+        - vote_count
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        authors:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthorInPaper'
+        abstract:
+          type: string
+        published_date:
+          type: string
+          format: date
+          description: Actual paper publication date (not crawl date)
+        venue:
+          type: string
+          nullable: true
+        arxiv_id:
+          type: string
+          nullable: true
+        doi:
+          type: string
+          nullable: true
+        pdf_url:
+          type: string
+          format: uri
+          nullable: true
+        github_url:
+          type: string
+          format: uri
+          nullable: true
+        project_page_url:
+          type: string
+          format: uri
+          nullable: true
+        youtube_url:
+          type: string
+          format: uri
+          nullable: true
+        vote_count:
+          type: integer
+          description: Net votes (upvotes - downvotes)
+        citation_count:
+          type: integer
+        quick_summary:
+          type: string
+          nullable: true
+        key_ideas:
+          type: string
+          nullable: true
+        quantitative_performance:
+          type: object
+          nullable: true
+        qualitative_performance:
+          type: string
+          nullable: true
+        limitations:
+          type: string
+          nullable: true
+
+    AuthorInPaper:
+      type: object
+      required:
+        - name
+      properties:
+        author_id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        affiliation:
+          type: string
+          nullable: true
+          description: Author affiliation at time of paper
+        position:
+          type: integer
+          description: Author position (1 = first author)
+
+    MetricSnapshot:
+      type: object
+      required:
+        - date
+      properties:
+        date:
+          type: string
+          format: date
+        citation_count:
+          type: integer
+          nullable: true
+        github_stars:
+          type: integer
+          nullable: true
+        vote_count:
+          type: integer
+          nullable: true
+        hype_score:
+          type: number
+          format: float
+          nullable: true

@@ -6,7 +6,7 @@ from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import BigInteger, CheckConstraint, Float, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -56,6 +56,19 @@ class MetricSnapshot(Base):
     github_stars: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     citation_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
+    # NEW FIELDS (Feature 003)
+    vote_count: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="Net vote count at time of snapshot"
+    )
+
+    hype_score: Mapped[Optional[float]] = mapped_column(
+        Float,
+        nullable=True,
+        comment="Calculated hype score at time of snapshot"
+    )
+
     # Timestamp
     created_at: Mapped[datetime] = mapped_column(
         server_default="NOW()", nullable=False
@@ -73,6 +86,10 @@ class MetricSnapshot(Base):
         CheckConstraint(
             "citation_count IS NULL OR citation_count >= 0",
             name="citation_count_non_negative",
+        ),
+        CheckConstraint(
+            "hype_score IS NULL OR hype_score >= 0",
+            name="hype_score_non_negative",
         ),
     )
 

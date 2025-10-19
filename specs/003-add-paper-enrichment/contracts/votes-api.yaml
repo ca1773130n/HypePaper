@@ -1,0 +1,120 @@
+openapi: 3.0.3
+info:
+  title: Votes API
+  description: API for voting on papers (upvote/downvote)
+  version: 1.0.0
+
+paths:
+  /api/papers/{paper_id}/vote:
+    post:
+      summary: Cast or update vote on paper
+      description: Create upvote/downvote or update existing vote. Requires authentication.
+      operationId: castVote
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: paper_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - vote_type
+              properties:
+                vote_type:
+                  type: string
+                  enum: [upvote, downvote]
+      responses:
+        '200':
+          description: Vote cast successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vote_type:
+                    type: string
+                    enum: [upvote, downvote]
+                  vote_count:
+                    type: integer
+                    description: Net votes on paper after this vote
+                  created_at:
+                    type: string
+                    format: date-time
+                  updated_at:
+                    type: string
+                    format: date-time
+        '401':
+          description: Unauthorized - authentication required
+        '404':
+          description: Paper not found
+
+    delete:
+      summary: Remove vote from paper
+      description: Delete user's vote. Requires authentication.
+      operationId: removeVote
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: paper_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Vote removed successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Vote or paper not found
+
+  /api/papers/{paper_id}/vote/status:
+    get:
+      summary: Get user's vote status on paper
+      description: Check if user has voted and vote type. Requires authentication.
+      operationId: getVoteStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: paper_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Vote status retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  has_voted:
+                    type: boolean
+                  vote_type:
+                    type: string
+                    enum: [upvote, downvote]
+                    nullable: true
+                  created_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+        '401':
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
