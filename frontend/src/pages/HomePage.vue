@@ -31,6 +31,20 @@
                 Crawl Papers
               </button>
               <button
+                @click="syncDatabase"
+                :disabled="isSyncing"
+                class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-green-500/50 transition-all text-gray-200 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span v-if="isSyncing" class="flex items-center gap-2">
+                  <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Syncing...
+                </span>
+                <span v-else>Sync DB</span>
+              </button>
+              <button
                 @click="navigateToProfile"
                 class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-purple-500/50 transition-all text-gray-200 text-sm font-medium"
               >
@@ -176,11 +190,17 @@
               <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 border border-blue-500/30">
                 {{ paper.venue || 'Research Paper' }}
               </span>
-              <span v-if="paper.github_url" class="text-gray-400 group-hover:text-purple-300 transition-colors">
+              <div v-if="paper.github_url" class="flex items-center gap-2 text-gray-400 group-hover:text-purple-300 transition-colors">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
                 </svg>
-              </span>
+                <span v-if="paper.github_stars" class="flex items-center gap-1 text-xs font-medium">
+                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                  </svg>
+                  {{ formatStarCount(paper.github_stars) }}
+                </span>
+              </div>
             </div>
 
             <!-- Title -->
@@ -201,9 +221,18 @@
 
             <!-- Footer -->
             <div class="flex items-center justify-between pt-4 border-t border-white/5">
-              <span class="text-xs text-gray-500 font-light">
-                {{ formatDate(paper.published_date) }}
-              </span>
+              <div class="flex items-center gap-4">
+                <span class="text-xs text-gray-500 font-light">
+                  {{ formatDate(paper.published_date) }}
+                </span>
+                <div @click.stop>
+                  <VoteButton
+                    :paper-id="paper.id"
+                    :initial-vote-count="paper.vote_count || 0"
+                    :initial-user-vote="null"
+                  />
+                </div>
+              </div>
               <svg class="w-5 h-5 text-gray-600 group-hover:text-purple-400 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -245,6 +274,7 @@ import {
 } from 'reka-ui'
 import { topicsApi, papersApi, type Topic, type Paper } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
+import VoteButton from '@/components/VoteButton.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -257,13 +287,14 @@ const previousSelectedTopics = ref<string[]>([])
 const isAllTopicsSelected = ref(true)
 const topicDropdownOpen = ref(false)
 const topicDropdownRef = ref<HTMLElement | null>(null)
-const selectedSort = ref<'hype_score' | 'published_date' | 'stars' | 'citations'>('hype_score')
+const selectedSort = ref<'hype_score' | 'recency' | 'stars' | 'citations'>('hype_score')
 const loading = ref(false)
 const error = ref('')
+const isSyncing = ref(false)
 
 const sortOptions = [
   { value: 'hype_score' as const, label: '🔥 Hype Score' },
-  { value: 'published_date' as const, label: '🆕 Recent' },
+  { value: 'recency' as const, label: '🆕 Recent' },
   { value: 'stars' as const, label: '⭐ Stars' },
   { value: 'citations' as const, label: '📚 Citations' },
 ]
@@ -332,7 +363,7 @@ const fetchPapers = async () => {
 
     const response = await papersApi.getAll({
       topic_id: topicId,
-      sort_by: selectedSort.value,
+      sort: selectedSort.value,  // Changed from sort_by to sort
       limit: 100,
     })
     papers.value = response.data.papers
@@ -360,6 +391,30 @@ const navigateToCrawler = () => {
   router.push('/crawler')
 }
 
+const syncDatabase = async () => {
+  if (isSyncing.value) return
+
+  if (!confirm('This will synchronize all papers with enrichment data (GitHub URLs, citations, authors). This may take several minutes. Continue?')) {
+    return
+  }
+
+  isSyncing.value = true
+  try {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    const response = await axios.post(`${apiUrl}/api/v1/jobs/sync-database`)
+
+    alert(`Sync started! ${response.data.results?.enriched_papers || 0} papers enriched, ${response.data.results?.authors_created || 0} authors created.`)
+
+    // Refresh papers list
+    await fetchPapers()
+  } catch (err: any) {
+    console.error('Sync failed:', err)
+    alert(`Sync failed: ${err.response?.data?.detail || err.message}`)
+  } finally {
+    isSyncing.value = false
+  }
+}
+
 const handleSignOut = async () => {
   await authStore.signOut()
 }
@@ -370,6 +425,16 @@ const formatDate = (dateString: string) => {
     month: 'short',
     day: 'numeric',
   })
+}
+
+const formatStarCount = (count: number): string => {
+  if (count >= 1000000) {
+    return (count / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
+  }
+  if (count >= 1000) {
+    return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
+  }
+  return count.toString()
 }
 
 watch([selectedTopics, isAllTopicsSelected, selectedSort], () => {
