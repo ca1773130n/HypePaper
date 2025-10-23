@@ -7,7 +7,7 @@
       "cmds": ["npm i"]
     },
     "build": {
-      "cmds": ["cd backend && pip install -r requirements.txt"]
+      "cmds": ["cd backend && pip install --break-system-packages -r requirements.txt"]
     }
   },
   "start": {
