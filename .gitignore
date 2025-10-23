@@ -24,6 +24,9 @@ logs/
 memory/
 flows/
 
+# SpecKit (third-party tool, local only)
+.specify/
+
 # OS
 .DS_Store
 node_modules
