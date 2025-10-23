@@ -1,7 +1,15 @@
 {
   "phases": {
     "setup": {
-      "nixPkgs": ["nodejs_20", "python311"]
+      "nixPkgs": [
+        "nodejs_20",
+        "python311",
+        "python311Packages.pip",
+        "python311Packages.virtualenv",
+        "gcc",
+        "gnumake",
+        "cmake"
+      ]
     },
     "install": {
       "cmds": ["npm i"]
