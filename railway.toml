@@ -1,0 +1,19 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "cd backend && pip install -r requirements.txt"
+
+[deploy]
+startCommand = "cd backend && uvicorn src.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/api/v1/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[[services]]
+name = "api"
+
+[[services.domains]]
+# Railway will auto-generate: hypepaper-production.up.railway.app
+
+[environments.production]
+variables = { ENVIRONMENT = "production" }

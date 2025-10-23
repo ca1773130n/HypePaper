@@ -50,9 +50,22 @@ app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
 # Configure CORS for frontend
+# Get allowed origins from environment or use defaults
+allowed_origins = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:5173,http://localhost:3000"
+).split(",")
+
+# Add production domains if in production environment
+if os.getenv("ENVIRONMENT") == "production":
+    allowed_origins.extend([
+        "https://hypepaper.pages.dev",  # Cloudflare Pages
+        "https://*.pages.dev",  # Cloudflare Pages preview deployments
+    ])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Vite/React dev servers
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
