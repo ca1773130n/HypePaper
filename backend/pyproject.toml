@@ -42,7 +42,7 @@ strict_equality = true
 
 [[tool.mypy.overrides]]
 module = [
-    "llama_cpp.*",
+#    "llama_cpp.*",
     "apscheduler.*",
 ]
 ignore_missing_imports = true
