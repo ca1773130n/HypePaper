@@ -14,7 +14,7 @@ httpx==0.25.1
 aiohttp==3.9.1
 
 # LLM
-llama-cpp-python==0.2.20
+#llama-cpp-python==0.2.20
 
 # Scheduling
 apscheduler==3.10.4
