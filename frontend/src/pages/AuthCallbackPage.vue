@@ -33,10 +33,16 @@ const error = ref<string | null>(null)
 
 onMounted(async () => {
   try {
-    // Check for OAuth error in URL
+    // Log the full callback URL for debugging
+    console.log('Callback URL:', window.location.href)
+    console.log('Hash:', window.location.hash)
+    console.log('Search:', window.location.search)
+
+    // Parse URL parameters
     const hashParams = new URLSearchParams(window.location.hash.substring(1))
     const queryParams = new URLSearchParams(window.location.search)
 
+    // Check for OAuth errors
     const errorCode = hashParams.get('error') || queryParams.get('error')
     const errorDescription = hashParams.get('error_description') || queryParams.get('error_description')
 
@@ -46,9 +52,38 @@ onMounted(async () => {
       return
     }
 
-    // Wait for Supabase to exchange the OAuth code/token for a session
-    // The SDK automatically handles this with detectSessionInUrl: true
-    console.log('Waiting for OAuth session exchange...')
+    // Check for access_token in hash (OAuth implicit flow)
+    const accessToken = hashParams.get('access_token')
+    const refreshToken = hashParams.get('refresh_token')
+
+    console.log('Access token present:', !!accessToken)
+    console.log('Refresh token present:', !!refreshToken)
+
+    // If we have tokens in the URL, manually set the session
+    if (accessToken) {
+      console.log('Setting session from URL tokens...')
+      const { data, error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken || ''
+      })
+
+      if (sessionError) {
+        console.error('Session error:', sessionError)
+        error.value = sessionError.message
+        return
+      }
+
+      if (data.session) {
+        console.log('Session established:', data.session.user.email)
+        await authStore.fetchUser()
+        console.log('Redirecting to home...')
+        router.push('/')
+        return
+      }
+    }
+
+    // Fallback: Wait for Supabase SDK to handle the callback automatically
+    console.log('Waiting for Supabase SDK to handle OAuth callback...')
 
     // Check session multiple times with exponential backoff
     let attempts = 0
@@ -65,10 +100,7 @@ onMounted(async () => {
 
       if (session) {
         console.log('Session established:', session.user.email)
-        // Fetch user data
         await authStore.fetchUser()
-
-        // Redirect to home page
         console.log('Redirecting to home...')
         router.push('/')
         return
@@ -86,7 +118,8 @@ onMounted(async () => {
       router.push('/')
     } else {
       console.error('No session established after', maxAttempts, 'attempts')
-      error.value = 'Failed to complete sign in. Please try again.'
+      console.error('URL did not contain access_token. Check Supabase redirect URL configuration.')
+      error.value = 'Failed to complete sign in. Please check your browser console for details.'
     }
 
   } catch (err) {
