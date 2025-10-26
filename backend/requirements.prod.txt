@@ -1,0 +1,24 @@
+# FastAPI and web server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Database
+sqlalchemy[asyncio]==2.0.23
+asyncpg==0.29.0
+alembic==1.12.1
+
+# HTTP client
+httpx==0.25.1
+aiohttp==3.9.1
+
+# Scheduling
+apscheduler==3.10.4
+
+# Authentication
+supabase==2.3.4
+pydantic-settings==2.1.0
+
+# Minimal dependencies for production only
+# Removed: pytest, mypy, ruff, selenium, PyMuPDF, redis, celery
+# These should only be in requirements.txt for local development
