@@ -32,23 +32,18 @@ async def get_current_user(
 
     try:
         supabase = get_supabase_client()
-        print(f"[AUTH DEBUG] Token received: {credentials.credentials[:20]}...")
-
         user = supabase.auth.get_user(credentials.credentials)
-        print(f"[AUTH DEBUG] User response: {user}")
 
         if not user or not user.user:
-            print("[AUTH DEBUG] No user in response - returning None")
             return None
 
-        print(f"[AUTH DEBUG] User ID: {user.user.id}")
         return {
             "id": user.user.id,
             "email": user.user.email,
             "user_metadata": user.user.user_metadata,
         }
     except Exception as e:
-        print(f"[AUTH DEBUG] Exception: {e} - returning None")
+        # Don't log exception details to avoid leaking sensitive info
         return None
 
 

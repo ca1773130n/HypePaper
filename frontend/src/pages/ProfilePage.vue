@@ -187,8 +187,6 @@ const customTopics = computed(() =>
 async function loadTopics() {
   try {
     console.log('[DEBUG] Loading topics...')
-    console.log('[DEBUG] Auth session:', authStore.session)
-    console.log('[DEBUG] Access token:', authStore.session?.access_token?.substring(0, 20) + '...')
     const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/topics`)
     console.log('[DEBUG] Topics loaded:', response.data)
     topics.value = response.data
@@ -209,8 +207,6 @@ async function saveTopic() {
 
   try {
     console.log('[DEBUG] Saving topic:', data)
-    console.log('[DEBUG] Auth session:', authStore.session)
-    console.log('[DEBUG] Access token:', authStore.session?.access_token?.substring(0, 20) + '...')
 
     if (editingTopic.value) {
       await axios.put(

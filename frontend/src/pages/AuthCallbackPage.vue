@@ -56,12 +56,9 @@ onMounted(async () => {
     const accessToken = hashParams.get('access_token')
     const refreshToken = hashParams.get('refresh_token')
 
-    console.log('Access token present:', !!accessToken)
-    console.log('Refresh token present:', !!refreshToken)
-
     // If we have tokens in the URL, manually set the session
     if (accessToken) {
-      console.log('Setting session from URL tokens...')
+      console.log('Setting session from OAuth callback...')
       const { data, error: sessionError } = await supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken || ''
