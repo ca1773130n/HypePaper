@@ -20,6 +20,13 @@ apscheduler==3.10.4
 supabase==2.3.4
 pydantic-settings==2.1.0
 
+# String matching and fuzzy search
+rapidfuzz==3.5.2
+
+# Background jobs and caching (required by production services)
+celery==5.3.4
+redis==5.0.1
+
 # Minimal dependencies for production only
-# Removed: pytest, mypy, ruff, selenium, PyMuPDF, redis, celery
-# These should only be in requirements.txt for local development
+# Removed: pytest, mypy, ruff, selenium, PyMuPDF (dev/test only)
+# Added back: rapidfuzz (citation_service, paper_crawler), celery (jobs), redis (cache_service)
