@@ -14,6 +14,7 @@ from .api.v1 import citations, github, health, jobs, auth, admin, topics, papers
 from .api.v1 import papers as papers_v1
 from .middleware.error_handler import ErrorHandlerMiddleware, RequestLoggingMiddleware
 from .middleware.security import SecurityHeadersMiddleware
+from .middleware.rate_limiter import RateLimiterMiddleware
 from .services.cache_service import close_cache
 from .utils.logging_config import setup_logging
 
@@ -47,6 +48,7 @@ app = FastAPI(
 )
 
 # Add middleware (order matters - first added = outermost)
+app.add_middleware(RateLimiterMiddleware, requests_per_minute=60, requests_per_hour=1000)
 app.add_middleware(ErrorHandlerMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)

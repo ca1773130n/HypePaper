@@ -19,8 +19,8 @@ engine = create_async_engine(
     DATABASE_URL,
     echo=False,  # Set to True for SQL query logging
     future=True,
-    pool_size=3,  # Reduced for session pooler
-    max_overflow=2,  # Reduced for session pooler
+    pool_size=10,  # Increased for better concurrency
+    max_overflow=5,  # Allow burst traffic
     pool_pre_ping=True,  # Verify connections before using
     pool_recycle=3600,  # Recycle connections after 1 hour
     pool_timeout=30,  # Timeout for getting connection from pool
