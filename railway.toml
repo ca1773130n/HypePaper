@@ -4,7 +4,7 @@ buildCommand = "/opt/venv/bin/pip install -r backend/requirements.prod.txt --no-
 
 [deploy]
 startCommand = "export LD_LIBRARY_PATH=/root/.nix-profile/lib:$LD_LIBRARY_PATH && cd backend && /opt/venv/bin/uvicorn src.main:app --host 0.0.0.0 --port $PORT"
-healthcheckPath = "/api/v1/health"
+healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
