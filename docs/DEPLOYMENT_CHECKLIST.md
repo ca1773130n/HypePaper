@@ -28,7 +28,7 @@ Use this checklist when deploying HypePaper for the first time.
 ### Set Environment Variables
 Go to Pages project > Settings > Environment Variables > Production:
 
-- [ ] `VITE_API_URL` = `https://hypepaper-backend.up.railway.app`
+- [ ] `VITE_API_URL` = `https://api.hypepaper.app`
 - [ ] `VITE_SUPABASE_URL` = Your Supabase project URL
 - [ ] `VITE_SUPABASE_ANON_KEY` = Your Supabase anon key
 
@@ -106,7 +106,7 @@ Go to GitHub repo > Settings > Secrets and variables > Actions
 - [ ] `CLOUDFLARE_API_TOKEN` = Token from Cloudflare
 - [ ] `CLOUDFLARE_ACCOUNT_ID` = From Cloudflare dashboard URL
 - [ ] `RAILWAY_TOKEN` = Token from Railway
-- [ ] `VITE_API_URL` = `https://hypepaper-backend.up.railway.app`
+- [ ] `VITE_API_URL` = `https://api.hypepaper.app`
 - [ ] `VITE_SUPABASE_URL` = Your Supabase project URL
 - [ ] `VITE_SUPABASE_ANON_KEY` = Your Supabase anon key
 
@@ -160,10 +160,10 @@ Go to Supabase Dashboard > Authentication > URL Configuration:
 ### Test Backend
 ```bash
 # Health check
-curl https://hypepaper-backend.up.railway.app/api/v1/health
+curl https://api.hypepaper.app/api/v1/health
 
 # Test topics endpoint
-curl https://hypepaper-backend.up.railway.app/api/v1/topics
+curl https://api.hypepaper.app/api/v1/topics
 ```
 
 - [ ] Health endpoint returns 200 OK
@@ -284,7 +284,7 @@ Your HypePaper app is now deployed and accessible from anywhere!
 
 ### Quick Reference
 - **Frontend**: https://hypepaper.pages.dev
-- **Backend API**: https://hypepaper-backend.up.railway.app
+- **Backend API**: https://api.hypepaper.app
 - **Database**: Supabase Dashboard
 
 ### To Deploy Changes

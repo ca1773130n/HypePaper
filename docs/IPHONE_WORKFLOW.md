@@ -357,7 +357,7 @@ Add these to Safari favorites:
 - **Supabase Dashboard**: https://supabase.com/dashboard
 - **GitHub Actions**: https://github.com/yourusername/hypepaper/actions
 - **Production Frontend**: https://hypepaper.pages.dev
-- **Production API**: https://hypepaper-backend.up.railway.app
+- **Production API**: https://api.hypepaper.app
 
 ## 📲 Recommended iPhone Apps
 

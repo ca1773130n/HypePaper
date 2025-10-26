@@ -46,7 +46,7 @@ In Cloudflare Pages settings > Environment Variables:
 
 ```bash
 # Production Environment
-VITE_API_URL=https://hypepaper-backend.up.railway.app
+VITE_API_URL=https://api.hypepaper.app
 VITE_SUPABASE_URL=your-supabase-project-url
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
@@ -128,7 +128,7 @@ CLOUDFLARE_ACCOUNT_ID=your-cloudflare-account-id
 RAILWAY_TOKEN=your-railway-api-token
 
 # Frontend Environment Variables
-VITE_API_URL=https://hypepaper-backend.up.railway.app
+VITE_API_URL=https://api.hypepaper.app
 VITE_SUPABASE_URL=your-supabase-url
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
@@ -190,10 +190,10 @@ git push origin main
 curl https://hypepaper.pages.dev
 
 # Backend (Railway)
-curl https://hypepaper-backend.up.railway.app/api/v1/health
+curl https://api.hypepaper.app/api/v1/health
 
 # Test API connection
-curl https://hypepaper-backend.up.railway.app/api/v1/topics
+curl https://api.hypepaper.app/api/v1/topics
 ```
 
 ## 📱 Updating from iPhone
@@ -308,7 +308,7 @@ curl https://your-backend.up.railway.app/api/v1/health
 ## 🔗 Quick Links
 
 - **Frontend**: https://hypepaper.pages.dev
-- **Backend**: https://hypepaper-backend.up.railway.app
+- **Backend**: https://api.hypepaper.app
 - **Supabase Dashboard**: https://supabase.com/dashboard
 - **Cloudflare Dashboard**: https://dash.cloudflare.com
 - **Railway Dashboard**: https://railway.app/dashboard

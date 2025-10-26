@@ -13,7 +13,7 @@ restartPolicyMaxRetries = 10
 name = "api"
 
 [[services.domains]]
-# Railway will auto-generate: hypepaper-production.up.railway.app
+# Custom domain: api.hypepaper.app (configured in Railway dashboard)
 
 [environments.production]
 variables = { ENVIRONMENT = "production" }

@@ -22,7 +22,7 @@ Build output: dist
 Root directory: frontend
 
 # 6. Add environment variables (Pages settings):
-VITE_API_URL=https://hypepaper-backend.up.railway.app
+VITE_API_URL=https://api.hypepaper.app
 VITE_SUPABASE_URL=[your-supabase-url]
 VITE_SUPABASE_ANON_KEY=[your-supabase-anon-key]
 
@@ -50,7 +50,7 @@ GITHUB_TOKEN=[your-github-token]
 PDF_STORAGE_PATH=/app/data/pdfs
 ```
 
-**Result**: Backend live at `https://hypepaper-backend.up.railway.app` ✓
+**Result**: Backend live at `https://api.hypepaper.app` ✓
 
 ### 3. Setup GitHub Actions (2 min)
 
@@ -61,7 +61,7 @@ PDF_STORAGE_PATH=/app/data/pdfs
 CLOUDFLARE_API_TOKEN     # Get from Cloudflare dashboard
 CLOUDFLARE_ACCOUNT_ID    # In Cloudflare dashboard URL
 RAILWAY_TOKEN            # Get from Railway account settings
-VITE_API_URL             # https://hypepaper-backend.up.railway.app
+VITE_API_URL             # https://api.hypepaper.app
 VITE_SUPABASE_URL        # Your Supabase project URL
 VITE_SUPABASE_ANON_KEY   # Your Supabase anon key
 ```
@@ -75,7 +75,7 @@ VITE_SUPABASE_ANON_KEY   # Your Supabase anon key
 curl https://hypepaper.pages.dev
 
 # Test backend
-curl https://hypepaper-backend.up.railway.app/api/v1/health
+curl https://api.hypepaper.app/api/v1/health
 
 # Test integration
 # Visit https://hypepaper.pages.dev in browser
