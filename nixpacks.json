@@ -1,17 +1,16 @@
 {
   "phases": {
     "setup": {
-      "nixPkgs": [
-        "python311",
-        "python311Packages.pip"
-      ]
+      "nixPkgs": ["python311"]
     },
     "install": {
-      "cmds": []
+      "cmds": [
+        "python3 -m ensurepip --upgrade",
+        "python3 -m pip install --upgrade pip setuptools wheel"
+      ]
     },
     "build": {
       "cmds": [
-        "python3 -m pip install --upgrade pip",
         "python3 -m pip install -r backend/requirements.prod.txt --no-cache-dir"
       ]
     }
