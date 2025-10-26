@@ -64,6 +64,51 @@ git add tests/ && git commit -m "test: add comprehensive GitHub validation tests
 git add *.md requirements.txt && git commit -m "docs: update requirements and documentation"
 ```
 
+## 🔍 SERENA MCP REQUIREMENTS (CRITICAL)
+
+**ALWAYS USE SERENA MCP FOR CODEBASE OPERATIONS:**
+
+1. **Activate Serena Project First**:
+   ```
+   mcp__serena__activate_project("HypePaper")
+   ```
+
+2. **Use Serena for All Code Search Operations**:
+   - ✅ **Finding symbols**: `mcp__serena__find_symbol` (classes, functions, methods)
+   - ✅ **Searching code**: `mcp__serena__search_for_pattern` (regex search)
+   - ✅ **Finding references**: `mcp__serena__find_referencing_symbols`
+   - ✅ **Reading files**: `mcp__serena__read_file` (with line ranges)
+   - ✅ **File listings**: `mcp__serena__list_dir`
+   - ✅ **File finding**: `mcp__serena__find_file`
+   - ❌ **NEVER use**: `Grep`, `Glob`, or `Read` for code exploration
+
+3. **Why Serena is Required**:
+   - Semantic understanding of code structure
+   - Symbol-aware navigation (classes, methods, functions)
+   - Faster and more accurate than grep/glob
+   - Integrated with project's language server
+   - Understands code relationships and dependencies
+
+4. **When to Use Serena vs Claude Code Tools**:
+   - **Serena MCP**: Code navigation, symbol search, finding references, understanding code structure
+   - **Claude Code Tools (Read/Grep/Glob)**: Non-code files, logs, configs, markdown documents
+   - **Claude Code Bash**: Terminal operations, git commands, package management
+
+5. **Example Workflows**:
+
+```javascript
+// ✅ CORRECT: Use Serena for finding code
+mcp__serena__activate_project("HypePaper")
+mcp__serena__find_symbol("health_check", "backend/src/api/v1/health.py", include_body=true)
+mcp__serena__search_for_pattern("DATABASE_URL", "backend/src", restrict_search_to_code_files=true)
+
+// ❌ WRONG: Using Grep/Glob for code search
+Grep(pattern="health_check", path="backend/src")  // Don't do this!
+Glob(pattern="**/*.py")  // Don't do this for code exploration!
+```
+
+**MANDATORY**: Before any code investigation, reading, or searching task, ACTIVATE SERENA and use its tools.
+
 ## 🚨 CRITICAL: CONCURRENT EXECUTION & FILE MANAGEMENT
 
 **ABSOLUTE RULES**:
