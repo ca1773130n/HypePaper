@@ -251,10 +251,10 @@ class Paper(Base):
         comment="Brief paper summary (1-2 sentences)"
     )
 
-    key_ideas: Mapped[Optional[str]] = mapped_column(
-        Text,
+    key_ideas: Mapped[Optional[list[str]]] = mapped_column(
+        ARRAY(Text),
         nullable=True,
-        comment="Main contributions and key ideas"
+        comment="Main contributions and key ideas (array of strings)"
     )
 
     quantitative_performance: Mapped[Optional[dict]] = mapped_column(
