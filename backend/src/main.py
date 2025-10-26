@@ -61,8 +61,8 @@ allowed_origins = os.getenv(
 # Add production domains if in production environment
 if os.getenv("ENVIRONMENT") == "production":
     allowed_origins.extend([
-        "https://hypepaper.pages.dev",  # Cloudflare Pages
-        "https://*.pages.dev",  # Cloudflare Pages preview deployments
+        "https://hypepaper.app",
+        "https://www.hypepaper.app",
     ])
 
 app.add_middleware(

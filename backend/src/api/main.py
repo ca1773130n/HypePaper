@@ -11,7 +11,12 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Frontend dev server
+    allow_origins=[
+        "http://localhost:5173",  # Frontend dev server
+        "http://localhost:3000",  # Alternative dev server
+        "https://hypepaper.app",  # Production
+        "https://www.hypepaper.app",  # Production with www
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
