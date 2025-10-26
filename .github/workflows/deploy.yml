@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-frontend
     # Only run deployment if secrets are configured
-    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+    if: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     permissions:
       contents: read
       deployments: write
@@ -82,7 +82,7 @@ jobs:
     name: Deploy Backend to Railway
     runs-on: ubuntu-latest
     # Only run deployment if secrets are configured
-    if: ${{ secrets.RAILWAY_TOKEN != '' }}
+    if: ${{ secrets.RAILWAY_TOKEN }}
 
     steps:
       - name: Checkout code
