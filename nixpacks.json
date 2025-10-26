@@ -2,23 +2,21 @@
   "phases": {
     "setup": {
       "nixPkgs": [
-        "nodejs_20",
         "python311",
-        "python311Packages.pip",
-        "python311Packages.virtualenv"
+        "python311Packages.pip"
       ]
     },
     "install": {
-      "cmds": ["npm i"]
+      "cmds": []
     },
     "build": {
       "cmds": [
-        "python -m venv venv",
-        "venv/bin/pip install -r backend/requirements.txt"
+        "pip install --upgrade pip",
+        "pip install -r backend/requirements.prod.txt --no-cache-dir"
       ]
     }
   },
   "start": {
-    "cmd": "venv/bin/python backend/src/main.py || cd backend && /app/venv/bin/uvicorn src.main:app --host 0.0.0.0 --port $PORT"
+    "cmd": "cd backend && uvicorn src.main:app --host 0.0.0.0 --port $PORT"
   }
 }
