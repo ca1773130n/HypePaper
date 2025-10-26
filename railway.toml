@@ -1,9 +1,9 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "pip install --upgrade pip && pip install -r backend/requirements.prod.txt --no-cache-dir"
+buildCommand = "python3 -m pip install --upgrade pip && python3 -m pip install -r backend/requirements.prod.txt --no-cache-dir"
 
 [deploy]
-startCommand = "cd backend && uvicorn src.main:app --host 0.0.0.0 --port $PORT"
+startCommand = "cd backend && python3 -m uvicorn src.main:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/api/v1/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
