@@ -441,13 +441,6 @@ watch([selectedTopics, isAllTopicsSelected, selectedSort], () => {
   fetchPapers()
 }, { deep: true })
 
-// Refetch topics when authentication state changes
-watch(() => authStore.isAuthenticated, (isAuth) => {
-  if (isAuth) {
-    fetchTopics()
-  }
-})
-
 // Close dropdown when clicking outside
 const handleClickOutside = (event: MouseEvent) => {
   if (topicDropdownRef.value && !topicDropdownRef.value.contains(event.target as Node)) {
