@@ -26,7 +26,9 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     log_level = os.getenv("LOG_LEVEL", "INFO")
-    log_file = Path(os.getenv("LOG_FILE", "logs/hypepaper.log"))
+    # Only use file logging if LOG_FILE is explicitly set (not in production by default)
+    log_file_str = os.getenv("LOG_FILE")
+    log_file = Path(log_file_str) if log_file_str else None
     json_format = os.getenv("LOG_JSON", "false").lower() == "true"
     setup_logging(log_level, log_file, json_format)
 
