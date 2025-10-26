@@ -5,17 +5,17 @@
     },
     "install": {
       "cmds": [
-        "python3 -m ensurepip --upgrade",
-        "python3 -m pip install --upgrade pip setuptools wheel"
+        "python3 -m venv /opt/venv",
+        "/opt/venv/bin/pip install --upgrade pip setuptools wheel"
       ]
     },
     "build": {
       "cmds": [
-        "python3 -m pip install -r backend/requirements.prod.txt --no-cache-dir"
+        "/opt/venv/bin/pip install -r backend/requirements.prod.txt --no-cache-dir"
       ]
     }
   },
   "start": {
-    "cmd": "cd backend && python3 -m uvicorn src.main:app --host 0.0.0.0 --port $PORT"
+    "cmd": "cd backend && /opt/venv/bin/uvicorn src.main:app --host 0.0.0.0 --port $PORT"
   }
 }
