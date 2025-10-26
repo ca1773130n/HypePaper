@@ -7,7 +7,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
-from ..utils.supabase_client import get_supabase_client
+from ..utils.supabase_client import get_anon_client
 
 security = HTTPBearer(auto_error=False)
 
@@ -31,7 +31,8 @@ async def get_current_user(
         return None
 
     try:
-        supabase = get_supabase_client()
+        # Use anon client to verify user JWT tokens (not service key)
+        supabase = get_anon_client()
         user = supabase.auth.get_user(credentials.credentials)
 
         if not user or not user.user:
