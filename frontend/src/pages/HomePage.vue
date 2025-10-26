@@ -361,9 +361,10 @@ const fetchPapers = async () => {
         ? selectedTopics.value[0]
         : undefined
 
+    // Only include topic_id in params if it's defined to avoid sending undefined
     const response = await papersApi.getAll({
-      topic_id: topicId,
-      sort: selectedSort.value,  // Changed from sort_by to sort
+      ...(topicId && { topic_id: topicId }),
+      sort_by: selectedSort.value,
       limit: 100,
     })
     papers.value = response.data.papers
