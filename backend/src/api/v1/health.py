@@ -199,3 +199,46 @@ async def liveness_check() -> Dict[str, str]:
         "status": "alive",
         "timestamp": datetime.utcnow().isoformat(),
     }
+
+
+@router.get("/auth-config", status_code=status.HTTP_200_OK)
+async def auth_config_check() -> Dict[str, Any]:
+    """Authentication configuration diagnostic endpoint.
+
+    Returns:
+        Auth configuration status and debugging information
+    """
+    from ...config import get_settings
+
+    settings = get_settings()
+
+    # Check Supabase configuration
+    supabase_configured = bool(settings.supabase_url and settings.supabase_anon_key)
+
+    config_info = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "supabase_configured": supabase_configured,
+        "supabase_url": settings.supabase_url if settings.supabase_url else "NOT_SET",
+        "supabase_anon_key_set": bool(settings.supabase_anon_key),
+        "supabase_service_key_set": bool(settings.supabase_service_key),
+    }
+
+    # Add anon key prefix for debugging (first 20 chars only)
+    if settings.supabase_anon_key:
+        config_info["supabase_anon_key_prefix"] = settings.supabase_anon_key[:20] + "..."
+    else:
+        config_info["supabase_anon_key_prefix"] = "NOT_SET"
+
+    # Determine status
+    if supabase_configured:
+        config_info["status"] = "configured"
+        config_info["message"] = "Supabase authentication is properly configured"
+    else:
+        config_info["status"] = "not_configured"
+        config_info["message"] = (
+            "Supabase authentication is NOT configured. "
+            "Please set SUPABASE_URL and SUPABASE_ANON_KEY environment variables. "
+            "These must match the frontend's Supabase project for authentication to work."
+        )
+
+    return config_info
