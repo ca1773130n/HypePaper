@@ -28,23 +28,36 @@ async def get_current_user(
         to support optional authentication in endpoints like topics
     """
     if credentials is None:
+        print("[AUTH DEBUG] No credentials provided")
         return None
 
     try:
+        token = credentials.credentials
+        print(f"[AUTH DEBUG] Token received: {token[:20]}..." if len(token) > 20 else f"[AUTH DEBUG] Token received: {token}")
+
         # Use anon client to verify user JWT tokens (not service key)
         supabase = get_anon_client()
-        user = supabase.auth.get_user(credentials.credentials)
+        print("[AUTH DEBUG] Anon client created")
 
-        if not user or not user.user:
+        # Verify the JWT token
+        user_response = supabase.auth.get_user(token)
+        print(f"[AUTH DEBUG] User response: {user_response}")
+
+        if not user_response or not user_response.user:
+            print("[AUTH DEBUG] No user found in response")
             return None
 
+        print(f"[AUTH DEBUG] User authenticated: {user_response.user.id}")
         return {
-            "id": user.user.id,
-            "email": user.user.email,
-            "user_metadata": user.user.user_metadata,
+            "id": user_response.user.id,
+            "email": user_response.user.email,
+            "user_metadata": user_response.user.user_metadata,
         }
     except Exception as e:
-        # Don't log exception details to avoid leaking sensitive info
+        # Log the exception for debugging
+        print(f"[AUTH DEBUG] Exception during authentication: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return None
 
 

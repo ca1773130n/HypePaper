@@ -161,7 +161,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import axios from 'axios'
+import { api } from '@/services/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -187,7 +187,7 @@ const customTopics = computed(() =>
 async function loadTopics() {
   try {
     console.log('[DEBUG] Loading topics...')
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/topics`)
+    const response = await api.get('/api/v1/topics')
     console.log('[DEBUG] Topics loaded:', response.data)
     topics.value = response.data
   } catch (error) {
@@ -209,12 +209,9 @@ async function saveTopic() {
     console.log('[DEBUG] Saving topic:', data)
 
     if (editingTopic.value) {
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/v1/topics/${editingTopic.value.id}`,
-        data
-      )
+      await api.put(`/api/v1/topics/${editingTopic.value.id}`, data)
     } else {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/topics`, data)
+      const response = await api.post('/api/v1/topics', data)
       console.log('[DEBUG] Topic created:', response.data)
     }
     closeModal()
@@ -242,7 +239,7 @@ async function deleteTopic(id: string) {
   if (!confirm('Are you sure you want to delete this topic?')) return
 
   try {
-    await axios.delete(`${import.meta.env.VITE_API_URL}/api/v1/topics/${id}`)
+    await api.delete(`/api/v1/topics/${id}`)
     loadTopics()
   } catch (error: any) {
     alert(error.response?.data?.detail || 'Failed to delete topic')
