@@ -13,13 +13,53 @@ export const api = axios.create({
 // Add request interceptor to inject Supabase auth token
 api.interceptors.request.use(
   async (config) => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.access_token) {
-      config.headers.Authorization = `Bearer ${session.access_token}`
+    try {
+      console.log('[API] Making request to:', config.url)
+      const { data: { session }, error } = await supabase.auth.getSession()
+
+      if (error) {
+        console.error('[API] Error getting session:', error)
+        return config
+      }
+
+      if (session?.access_token) {
+        console.log('[API] Adding auth token to request')
+        // Ensure headers object exists
+        if (!config.headers) {
+          config.headers = {} as any
+        }
+        config.headers.Authorization = `Bearer ${session.access_token}`
+      } else {
+        console.warn('[API] No session or access token available')
+      }
+    } catch (error) {
+      console.error('[API] Exception in request interceptor:', error)
     }
     return config
   },
   (error) => {
+    console.error('[API] Request interceptor error:', error)
+    return Promise.reject(error)
+  }
+)
+
+// Add response interceptor for better error logging
+api.interceptors.response.use(
+  (response) => {
+    console.log('[API] Response received:', response.config.url, response.status)
+    return response
+  },
+  (error) => {
+    if (error.response) {
+      console.error('[API] Response error:', {
+        url: error.config?.url,
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers
+      })
+    } else {
+      console.error('[API] Network error:', error.message)
+    }
     return Promise.reject(error)
   }
 )
