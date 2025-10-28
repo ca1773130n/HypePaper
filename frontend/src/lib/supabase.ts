@@ -1,7 +1,20 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:54321'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+// IMPORTANT: Environment variables must be set for authentication to work
+// Both VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are required
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Supabase configuration missing!')
+  console.error('Required environment variables:')
+  console.error('  - VITE_SUPABASE_URL')
+  console.error('  - VITE_SUPABASE_ANON_KEY')
+  console.error('Current values:')
+  console.error('  - VITE_SUPABASE_URL:', supabaseUrl || '(not set)')
+  console.error('  - VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? '(set)' : '(not set)')
+  throw new Error('Supabase configuration is required. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.')
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
