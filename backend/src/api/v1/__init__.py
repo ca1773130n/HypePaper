@@ -10,6 +10,7 @@ from .github import router as github_router
 from .health import router as health_router
 from .jobs import router as jobs_router
 from .papers import router as papers_router
+from .profile import router as profile_router
 
 # Create main v1 router
 v1_router = APIRouter()
@@ -21,6 +22,7 @@ v1_router.include_router(citations_router)
 v1_router.include_router(github_router)
 v1_router.include_router(jobs_router)
 v1_router.include_router(health_router)
+v1_router.include_router(profile_router)
 
 __all__ = [
     "v1_router",
@@ -30,4 +32,5 @@ __all__ = [
     "github_router",
     "jobs_router",
     "health_router",
+    "profile_router",
 ]
