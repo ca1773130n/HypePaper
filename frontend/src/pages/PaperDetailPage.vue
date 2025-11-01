@@ -42,15 +42,16 @@
             <p class="mt-2 text-gray-400 text-sm font-light tracking-wide">Discover what's trending in research</p>
           </div>
           <div class="flex items-center gap-3">
+            <!-- Desktop Buttons (hidden on mobile) -->
             <button
               @click="goBack"
-              class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-purple-500/50 transition-all text-gray-200 text-sm font-medium"
+              class="hidden md:block px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-purple-500/50 transition-all text-gray-200 text-sm font-medium"
             >
               ← Back
             </button>
 
             <!-- Auth Buttons -->
-            <div v-if="authStore.isAuthenticated" class="flex items-center gap-3">
+            <div v-if="authStore.isAuthenticated" class="hidden md:flex items-center gap-3">
               <button
                 @click="navigateToProfile"
                 class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-purple-500/50 transition-all text-gray-200 text-sm font-medium"
@@ -66,15 +67,21 @@
             </div>
             <button
               v-else
-              @click="navigateToLogin"
-              class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-sm font-medium shadow-lg shadow-purple-500/50 transition-all"
+              @click="showSignInModal = true"
+              class="hidden md:block px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-sm font-medium shadow-lg shadow-purple-500/50 transition-all"
             >
               Sign In
             </button>
+
+            <!-- Profile Icon (visible on all screen sizes) -->
+            <ProfileIcon @open-sign-in="showSignInModal = true" />
           </div>
         </div>
       </div>
     </header>
+
+    <!-- Sign In Modal -->
+    <SignInModal v-model="showSignInModal" />
 
     <!-- Main Content -->
     <main class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -307,6 +314,8 @@ import VoteButton from '@/components/VoteButton.vue'
 import AuthorModal from '@/components/AuthorModal.vue'
 import MetricGraph from '@/components/MetricGraph.vue'
 import AbstractWithLinks from '@/components/AbstractWithLinks.vue'
+import ProfileIcon from '@/components/ProfileIcon.vue'
+import SignInModal from '@/components/SignInModal.vue'
 
 Chart.register(...registerables)
 
@@ -327,6 +336,7 @@ const citationChartCanvas = ref<HTMLCanvasElement | null>(null)
 const bibtexCopied = ref(false)
 const isAuthorModalOpen = ref(false)
 const selectedAuthorId = ref<number | null>(null)
+const showSignInModal = ref(false)
 
 // Simple cache for paper data
 const paperCache = new Map()
@@ -560,10 +570,6 @@ const navigateToHome = () => {
 
 const navigateToProfile = () => {
   router.push('/profile')
-}
-
-const navigateToLogin = () => {
-  router.push('/login')
 }
 
 const handleSignOut = async () => {

@@ -18,12 +18,8 @@
             <p class="mt-2 text-gray-400 text-sm font-light tracking-wide">Discover what's trending in research</p>
           </div>
           <div class="flex items-center gap-3">
-            <div class="hidden sm:block px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
-              <span class="text-sm font-medium text-blue-300">{{ papers.length }} papers</span>
-            </div>
-
-            <!-- Auth Buttons -->
-            <div v-if="authStore.isAuthenticated" class="flex items-center gap-3">
+            <!-- Desktop Auth Buttons (hidden on mobile) -->
+            <div v-if="authStore.isAuthenticated" class="hidden md:flex items-center gap-3">
               <button
                 @click="navigateToCrawler"
                 class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all text-gray-200 text-sm font-medium"
@@ -60,14 +56,20 @@
             <button
               v-else
               @click="navigateToLogin"
-              class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-sm font-medium shadow-lg shadow-purple-500/50 transition-all"
+              class="hidden md:block px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-sm font-medium shadow-lg shadow-purple-500/50 transition-all"
             >
               Sign In
             </button>
+
+            <!-- Profile Icon (visible on all screen sizes) -->
+            <ProfileIcon @open-sign-in="showSignInModal = true" />
           </div>
         </div>
       </div>
     </header>
+
+    <!-- Sign In Modal -->
+    <SignInModal v-model="showSignInModal" />
 
     <!-- Main Content -->
     <main class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -275,6 +277,8 @@ import {
 import { topicsApi, papersApi, type Topic, type Paper } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import VoteButton from '@/components/VoteButton.vue'
+import ProfileIcon from '@/components/ProfileIcon.vue'
+import SignInModal from '@/components/SignInModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -291,6 +295,7 @@ const selectedSort = ref<'hype_score' | 'recency' | 'stars' | 'citations'>('hype
 const loading = ref(false)
 const error = ref('')
 const isSyncing = ref(false)
+const showSignInModal = ref(false)
 
 const sortOptions = [
   { value: 'hype_score' as const, label: '🔥 Hype Score' },
