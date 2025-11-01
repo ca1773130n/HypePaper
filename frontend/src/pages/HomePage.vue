@@ -61,14 +61,8 @@
               Sign In
             </button>
 
-            <!-- Mobile Navigation (visible on mobile only) -->
-            <div class="md:hidden">
-              <MobileNav
-                :paper-count="papers.length"
-                :is-syncing="isSyncing"
-                @sync="syncDatabase"
-              />
-            </div>
+            <!-- Profile Icon (visible on all screen sizes) -->
+            <ProfileIcon />
           </div>
         </div>
       </div>
@@ -280,7 +274,7 @@ import {
 import { topicsApi, papersApi, type Topic, type Paper } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import VoteButton from '@/components/VoteButton.vue'
-import MobileNav from '@/components/MobileNav.vue'
+import ProfileIcon from '@/components/ProfileIcon.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

@@ -25,10 +25,8 @@
               Sign Out
             </button>
 
-            <!-- Mobile Navigation (visible on mobile only) -->
-            <div class="md:hidden">
-              <MobileNav :paper-count="0" :is-syncing="false" />
-            </div>
+            <!-- Profile Icon (visible on all screen sizes) -->
+            <ProfileIcon />
           </div>
         </div>
       </div>
@@ -353,7 +351,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { api, profileApi, type UserProfile, type UserStats, type CrawlerJob, type Topic } from '@/services/api'
-import MobileNav from '@/components/MobileNav.vue'
+import ProfileIcon from '@/components/ProfileIcon.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

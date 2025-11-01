@@ -73,10 +73,8 @@
               Sign In
             </button>
 
-            <!-- Mobile Navigation (visible on mobile only) -->
-            <div class="md:hidden">
-              <MobileNav :paper-count="0" :is-syncing="false" />
-            </div>
+            <!-- Profile Icon (visible on all screen sizes) -->
+            <ProfileIcon />
           </div>
         </div>
       </div>
@@ -313,7 +311,7 @@ import VoteButton from '@/components/VoteButton.vue'
 import AuthorModal from '@/components/AuthorModal.vue'
 import MetricGraph from '@/components/MetricGraph.vue'
 import AbstractWithLinks from '@/components/AbstractWithLinks.vue'
-import MobileNav from '@/components/MobileNav.vue'
+import ProfileIcon from '@/components/ProfileIcon.vue'
 
 Chart.register(...registerables)
 

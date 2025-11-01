@@ -38,10 +38,8 @@
               Sign Out
             </button>
 
-            <!-- Mobile Navigation (visible on mobile only) -->
-            <div class="md:hidden">
-              <MobileNav :paper-count="0" :is-syncing="false" />
-            </div>
+            <!-- Profile Icon (visible on all screen sizes) -->
+            <ProfileIcon />
           </div>
         </div>
       </div>
@@ -402,7 +400,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
-import MobileNav from '@/components/MobileNav.vue'
+import ProfileIcon from '@/components/ProfileIcon.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
