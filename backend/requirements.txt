@@ -10,7 +10,7 @@ alembic==1.12.1
 psycopg2-binary==2.9.9
 
 # HTTP client
-httpx==0.25.1
+httpx==0.27.2
 aiohttp==3.9.1
 
 # LLM
@@ -47,5 +47,5 @@ undetected-chromedriver==3.5.4
 requests==2.31.0
 
 # Authentication
-supabase==2.3.4
+supabase==2.9.1
 pydantic-settings==2.1.0

@@ -85,7 +85,7 @@ app.include_router(health.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 app.include_router(topics.router, prefix="/api/v1")
-app.include_router(profile.router)  # profile router already has /api/profile prefix
+app.include_router(profile.router, prefix="/api")  # profile router has /profile, we add /api
 
 # Include legacy routers (for backward compatibility)
 app.include_router(papers.router)
