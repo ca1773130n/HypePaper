@@ -52,8 +52,8 @@ jobs:
     name: Deploy Frontend to Cloudflare Pages
     runs-on: ubuntu-latest
     needs: build-frontend
-    # Only run on main branch AND when Cloudflare secrets are configured
-    if: github.ref == 'refs/heads/main' && secrets.CLOUDFLARE_API_TOKEN
+    # Only run on main branch
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: read
       deployments: write
@@ -69,6 +69,8 @@ jobs:
           path: frontend/dist
 
       - name: Deploy to Cloudflare Pages
+        # Skip if API token not configured
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -77,6 +79,12 @@ jobs:
           directory: frontend/dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref_name }}
+
+      - name: Cloudflare Token Not Configured
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN == '' }}
+        run: |
+          echo "ℹ️  Cloudflare API token not configured"
+          echo "📋 See docs/working/ADD_CLOUDFLARE_API_TOKEN.md for setup instructions"
 
   deploy-backend:
     name: Deploy Backend to Railway
