@@ -18,10 +18,6 @@
             <p class="mt-2 text-gray-400 text-sm font-light tracking-wide">Discover what's trending in research</p>
           </div>
           <div class="flex items-center gap-3">
-            <div class="hidden sm:block px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
-              <span class="text-sm font-medium text-blue-300">{{ papers.length }} papers</span>
-            </div>
-
             <!-- Desktop Auth Buttons (hidden on mobile) -->
             <div v-if="authStore.isAuthenticated" class="hidden md:flex items-center gap-3">
               <button
