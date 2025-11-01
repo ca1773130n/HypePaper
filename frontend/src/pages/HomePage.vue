@@ -22,8 +22,8 @@
               <span class="text-sm font-medium text-blue-300">{{ papers.length }} papers</span>
             </div>
 
-            <!-- Auth Buttons -->
-            <div v-if="authStore.isAuthenticated" class="flex items-center gap-3">
+            <!-- Desktop Auth Buttons (hidden on mobile) -->
+            <div v-if="authStore.isAuthenticated" class="hidden md:flex items-center gap-3">
               <button
                 @click="navigateToCrawler"
                 class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all text-gray-200 text-sm font-medium"
@@ -60,10 +60,19 @@
             <button
               v-else
               @click="navigateToLogin"
-              class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-sm font-medium shadow-lg shadow-purple-500/50 transition-all"
+              class="hidden md:block px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-sm font-medium shadow-lg shadow-purple-500/50 transition-all"
             >
               Sign In
             </button>
+
+            <!-- Mobile Navigation (visible on mobile only) -->
+            <div class="md:hidden">
+              <MobileNav
+                :paper-count="papers.length"
+                :is-syncing="isSyncing"
+                @sync="syncDatabase"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -275,6 +284,7 @@ import {
 import { topicsApi, papersApi, type Topic, type Paper } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import VoteButton from '@/components/VoteButton.vue'
+import MobileNav from '@/components/MobileNav.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

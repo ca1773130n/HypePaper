@@ -18,24 +18,30 @@
             <p class="mt-2 text-gray-400 text-sm font-light tracking-wide">Crawl and discover research papers</p>
           </div>
           <div class="flex items-center gap-3">
+            <!-- Desktop Buttons (hidden on mobile) -->
             <button
               @click="navigateToHome"
-              class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-purple-500/50 transition-all text-gray-200 text-sm font-medium"
+              class="hidden md:block px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-purple-500/50 transition-all text-gray-200 text-sm font-medium"
             >
               ← Home
             </button>
             <button
               @click="navigateToProfile"
-              class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-purple-500/50 transition-all text-gray-200 text-sm font-medium"
+              class="hidden md:block px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-purple-500/50 transition-all text-gray-200 text-sm font-medium"
             >
               Profile
             </button>
             <button
               @click="handleSignOut"
-              class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-red-500/50 transition-all text-gray-400 hover:text-red-300 text-sm"
+              class="hidden md:block px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-red-500/50 transition-all text-gray-400 hover:text-red-300 text-sm"
             >
               Sign Out
             </button>
+
+            <!-- Mobile Navigation (visible on mobile only) -->
+            <div class="md:hidden">
+              <MobileNav :paper-count="0" :is-syncing="false" />
+            </div>
           </div>
         </div>
       </div>
@@ -396,6 +402,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import MobileNav from '@/components/MobileNav.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
