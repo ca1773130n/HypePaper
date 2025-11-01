@@ -1,22 +1,27 @@
 {
   "mcpServers": {
     "claude-flow": {
+      "type": "stdio",
       "command": "npx",
       "args": [
         "claude-flow@alpha",
         "mcp",
         "start"
-      ],
-      "type": "stdio"
+      ]
     },
     "ruv-swarm": {
+      "type": "stdio",
       "command": "npx",
       "args": [
         "ruv-swarm@latest",
         "mcp",
         "start"
-      ],
-      "type": "stdio"
+      ]
+    },
+    "serena": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server"]
     }
   }
 }
