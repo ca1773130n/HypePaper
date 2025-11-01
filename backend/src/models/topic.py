@@ -3,14 +3,17 @@
 Represents research domains that users can watch.
 """
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, CheckConstraint, String, Text, text
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, String, Text, text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
+
+if TYPE_CHECKING:
+    from .user_profile import UserProfile
 
 
 class Topic(Base):
@@ -49,7 +52,13 @@ class Topic(Base):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     keywords: Mapped[Optional[list[str]]] = mapped_column(ARRAY(Text), nullable=True)
     is_system: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
-    user_id: Mapped[Optional[UUID]] = mapped_column(PGUUID(as_uuid=True), nullable=True)
+    user_id: Mapped[Optional[UUID]] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("user_profiles.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="User who created this custom topic (NULL for system topics)"
+    )
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
@@ -59,6 +68,12 @@ class Topic(Base):
     # Relationships
     paper_matches: Mapped[list["PaperTopicMatch"]] = relationship(
         "PaperTopicMatch", back_populates="topic", cascade="all, delete-orphan"
+    )
+
+    creator: Mapped[Optional["UserProfile"]] = relationship(
+        "UserProfile",
+        back_populates="custom_topics",
+        doc="User who created this custom topic"
     )
 
     # Constraints

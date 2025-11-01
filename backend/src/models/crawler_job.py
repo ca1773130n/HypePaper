@@ -3,11 +3,14 @@ from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import String, Text, Integer, text
+from sqlalchemy import ForeignKey, String, Text, Integer, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
+
+if TYPE_CHECKING:
+    from .user_profile import UserProfile
 
 
 class CrawlerJob(Base):
@@ -25,6 +28,15 @@ class CrawlerJob(Base):
         primary_key=True,
         default=uuid4,
         server_default=text("gen_random_uuid()"),
+    )
+
+    # User ownership (NULL for system jobs)
+    user_id: Mapped[Optional[UUID]] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("user_profiles.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="Owner of this crawler job (NULL for system jobs)"
     )
 
     # Job metadata
@@ -59,4 +71,11 @@ class CrawlerJob(Base):
         server_default=text("NOW()"),
         onupdate=datetime.utcnow,
         nullable=False,
+    )
+
+    # Relationships
+    user: Mapped[Optional["UserProfile"]] = relationship(
+        "UserProfile",
+        back_populates="crawler_jobs",
+        doc="User who owns this crawler job"
     )

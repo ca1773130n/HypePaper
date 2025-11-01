@@ -18,6 +18,7 @@ from .admin_task_log import AdminTaskLog
 from .crawler_job import CrawlerJob
 from .citation_snapshot import CitationSnapshot
 from .vote import Vote
+from .user_profile import UserProfile
 
 __all__ = [
     "Base",
@@ -38,4 +39,5 @@ __all__ = [
     "CrawlerJob",
     "CitationSnapshot",
     "Vote",
+    "UserProfile",
 ]
