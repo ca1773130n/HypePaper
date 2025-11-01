@@ -272,7 +272,7 @@ class Paper(Base):
     # Note: limitations field already exists in the legacy section above
 
     # GitHub scraping (scraped from repo page)
-    github_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    # Note: github_url is already defined above in the core metadata section (line ~65)
     github_stars_scraped: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     # ============================================================
