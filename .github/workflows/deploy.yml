@@ -69,8 +69,8 @@ jobs:
           path: frontend/dist
 
       - name: Deploy to Cloudflare Pages
-        # Skip if API token not configured
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+        # Deployment will skip gracefully if secrets not configured
+        continue-on-error: true
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -79,12 +79,6 @@ jobs:
           directory: frontend/dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref_name }}
-
-      - name: Cloudflare Token Not Configured
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN == '' }}
-        run: |
-          echo "ℹ️  Cloudflare API token not configured"
-          echo "📋 See docs/working/ADD_CLOUDFLARE_API_TOKEN.md for setup instructions"
 
   deploy-backend:
     name: Deploy Backend to Railway
