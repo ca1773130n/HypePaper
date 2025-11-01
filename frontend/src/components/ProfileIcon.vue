@@ -33,7 +33,7 @@
   <!-- Unauthenticated User: Sign In Icon -->
   <button
     v-else
-    @click="navigateToLogin"
+    @click="emit('openSignIn')"
     class="relative group"
     title="Sign In"
   >
@@ -51,6 +51,12 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+
+interface Emits {
+  (e: 'openSignIn'): void
+}
+
+const emit = defineEmits<Emits>()
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -90,10 +96,6 @@ const handleImageError = () => {
 
 const navigateToProfile = () => {
   router.push('/profile')
-}
-
-const navigateToLogin = () => {
-  router.push('/login')
 }
 </script>
 

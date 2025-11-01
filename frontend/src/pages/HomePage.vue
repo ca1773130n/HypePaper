@@ -62,11 +62,14 @@
             </button>
 
             <!-- Profile Icon (visible on all screen sizes) -->
-            <ProfileIcon />
+            <ProfileIcon @open-sign-in="showSignInModal = true" />
           </div>
         </div>
       </div>
     </header>
+
+    <!-- Sign In Modal -->
+    <SignInModal v-model="showSignInModal" />
 
     <!-- Main Content -->
     <main class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -275,6 +278,7 @@ import { topicsApi, papersApi, type Topic, type Paper } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import VoteButton from '@/components/VoteButton.vue'
 import ProfileIcon from '@/components/ProfileIcon.vue'
+import SignInModal from '@/components/SignInModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -291,6 +295,7 @@ const selectedSort = ref<'hype_score' | 'recency' | 'stars' | 'citations'>('hype
 const loading = ref(false)
 const error = ref('')
 const isSyncing = ref(false)
+const showSignInModal = ref(false)
 
 const sortOptions = [
   { value: 'hype_score' as const, label: '🔥 Hype Score' },
