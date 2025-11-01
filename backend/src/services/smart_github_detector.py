@@ -135,6 +135,20 @@ class SmartGitHubDetector:
                     return True
         return False
 
+    def _is_github_io_url(self, url: str) -> bool:
+        """
+        Check if URL is a GitHub.io project website.
+
+        GitHub.io URLs are project websites, not repositories.
+        We need to parse these pages to find the actual repository URL.
+        """
+        try:
+            parsed = urlparse(url)
+            hostname = parsed.hostname or ''
+            return hostname.lower().endswith('.github.io')
+        except Exception:
+            return False
+
     def _is_project_website(self, url: str) -> bool:
         """
         Check if URL is likely a project website (not GitHub, arXiv, or academic services).
@@ -154,7 +168,7 @@ class SmartGitHubDetector:
             if any(service in hostname for service in academic_services):
                 return False
 
-            # Common project hosting domains
+            # Common project hosting domains (including GitHub.io)
             project_domains = [
                 'github.io', 'gitlab.io', 'pages.dev', 'vercel.app',
                 'netlify.app', 'web.app', 'firebaseapp.com', 'herokuapp.com',
@@ -192,6 +206,125 @@ class SmartGitHubDetector:
         except Exception:
             return False
 
+    async def _parse_github_io_for_repo(self, github_io_url: str) -> Optional[str]:
+        """
+        Specialized parser for GitHub.io pages to extract repository URL.
+
+        GitHub.io pages have specific patterns:
+        1. Often have a "View on GitHub" corner ribbon
+        2. Meta tags containing repository info
+        3. GitHub icons/links in header/footer
+        4. Jekyll/Sphinx template patterns
+        """
+        if not self.session:
+            return None
+
+        try:
+            print(f"[GITHUB_IO_PARSER] Parsing GitHub.io page: {github_io_url}")
+            async with self.session.get(github_io_url) as response:
+                if response.status != 200:
+                    print(f"[GITHUB_IO_PARSER] Failed to fetch page, status: {response.status}")
+                    return None
+
+                html = await response.text()
+                soup = BeautifulSoup(html, 'html.parser')
+
+                # Strategy 1: Check meta tags (common in GitHub.io pages)
+                meta_patterns = [
+                    ('property', 'og:url'),
+                    ('name', 'github-repo'),
+                    ('property', 'al:web:url')
+                ]
+                for attr_name, attr_value in meta_patterns:
+                    meta = soup.find('meta', {attr_name: attr_value})
+                    if meta and meta.get('content'):
+                        content = meta.get('content')
+                        if self._is_direct_github_url(content):
+                            print(f"[GITHUB_IO_PARSER] Found in meta tag: {content}")
+                            return self._normalize_github_url(content)
+
+                # Strategy 2: Look for "View on GitHub" / "Fork me on GitHub" ribbons
+                ribbon_patterns = [
+                    r'view\s+on\s+github', r'fork\s+me', r'github\s+repository',
+                    r'star\s+on\s+github', r'source\s+on\s+github'
+                ]
+                for pattern in ribbon_patterns:
+                    elements = soup.find_all(['a', 'div', 'span'], string=re.compile(pattern, re.IGNORECASE))
+                    for element in elements:
+                        # Check element itself if it's a link
+                        if element.name == 'a':
+                            href = element.get('href')
+                            if href and self._is_direct_github_url(href):
+                                print(f"[GITHUB_IO_PARSER] Found in ribbon: {href}")
+                                return self._normalize_github_url(href)
+                        # Check for nested links
+                        parent = element.find_parent('a', href=True)
+                        if parent:
+                            href = parent.get('href')
+                            if href and self._is_direct_github_url(href):
+                                print(f"[GITHUB_IO_PARSER] Found in ribbon parent: {href}")
+                                return self._normalize_github_url(href)
+
+                # Strategy 3: Check for GitHub icons/SVG (common in headers)
+                github_icons = soup.find_all('svg', class_=re.compile(r'octicon|github', re.IGNORECASE))
+                for icon in github_icons:
+                    parent_link = icon.find_parent('a', href=True)
+                    if parent_link:
+                        href = parent_link.get('href')
+                        if href and self._is_direct_github_url(href):
+                            print(f"[GITHUB_IO_PARSER] Found via GitHub icon: {href}")
+                            return self._normalize_github_url(href)
+
+                # Strategy 4: Check for links with GitHub icons (FontAwesome, etc.)
+                icon_links = soup.find_all('a', href=True)
+                for link in icon_links:
+                    # Check for GitHub-related classes or aria-labels
+                    classes = ' '.join(link.get('class', [])).lower()
+                    aria_label = (link.get('aria-label') or '').lower()
+                    if 'github' in classes or 'github' in aria_label:
+                        href = link.get('href')
+                        if href and self._is_direct_github_url(href):
+                            print(f"[GITHUB_IO_PARSER] Found via icon class/label: {href}")
+                            return self._normalize_github_url(href)
+
+                # Strategy 5: Extract username from GitHub.io URL and construct repo URL
+                # Pattern: username.github.io/repo-name or username.github.io (user page)
+                parsed = urlparse(github_io_url)
+                hostname = parsed.hostname or ''
+                if hostname.endswith('.github.io'):
+                    username = hostname.replace('.github.io', '')
+                    path_parts = parsed.path.strip('/').split('/')
+
+                    # If there's a path, the first part is likely the repo name
+                    if path_parts and path_parts[0]:
+                        repo_name = path_parts[0]
+                        inferred_url = f"https://github.com/{username}/{repo_name}"
+                        print(f"[GITHUB_IO_PARSER] Inferred from URL structure: {inferred_url}")
+                        # We'll validate this in the next step
+                        return inferred_url
+                    else:
+                        # It might be a user page (username.github.io)
+                        # Try to find any link to that user's repositories
+                        inferred_url = f"https://github.com/{username}"
+                        print(f"[GITHUB_IO_PARSER] Found user page, checking: {inferred_url}")
+
+                # Strategy 6: Look for any github.com links as fallback
+                all_links = soup.find_all('a', href=True)
+                for link in all_links:
+                    href = link.get('href')
+                    if href and self._is_direct_github_url(href):
+                        # Prefer repository links over user profiles
+                        if href.count('/') >= 4:  # github.com/user/repo
+                            print(f"[GITHUB_IO_PARSER] Found generic GitHub link: {href}")
+                            return self._normalize_github_url(href)
+
+                print(f"[GITHUB_IO_PARSER] No repository URL found")
+                return None
+
+        except Exception as e:
+            print(f"[GITHUB_IO_PARSER] Error parsing GitHub.io page {github_io_url}: {e}")
+            return None
+
     async def _parse_project_website_for_github(self, website_url: str) -> Optional[str]:
         """
         Parse project website to find GitHub repository link.
@@ -200,9 +333,16 @@ class SmartGitHubDetector:
         - Links with text "Code", "GitHub", "Source Code"
         - <a> tags with GitHub URLs
         - Common button/link patterns
+
+        For GitHub.io URLs, uses specialized parsing logic.
         """
         if not self.session:
             return None
+
+        # Use specialized parser for GitHub.io pages
+        if self._is_github_io_url(website_url):
+            print(f"[PARSER] Detected GitHub.io URL, using specialized parser")
+            return await self._parse_github_io_for_repo(website_url)
 
         try:
             async with self.session.get(website_url) as response:
