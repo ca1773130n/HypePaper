@@ -497,8 +497,8 @@ async def get_paper_citations(
         # Papers citing this paper
         query_in = (
             select(PaperReference)
-            .where(PaperReference.reference_id == paper.id)
-            .options(selectinload(PaperReference.paper))
+            .where(PaperReference.target_paper_id == paper.id)
+            .options(selectinload(PaperReference.source_paper))
             .limit(page_size)
             .offset((page - 1) * page_size)
         )
@@ -506,7 +506,7 @@ async def get_paper_citations(
         refs_in = list(result_in.scalars().all())
 
         for ref in refs_in:
-            citing_paper = ref.paper
+            citing_paper = ref.source_paper
             citations_in.append(
                 CitationRelationship(
                     related_paper_id=str(citing_paper.id),
@@ -525,8 +525,8 @@ async def get_paper_citations(
         # Papers cited by this paper
         query_out = (
             select(PaperReference)
-            .where(PaperReference.paper_id == paper.id)
-            .options(selectinload(PaperReference.referenced_paper))
+            .where(PaperReference.source_paper_id == paper.id)
+            .options(selectinload(PaperReference.target_paper))
             .limit(page_size)
             .offset((page - 1) * page_size)
         )
@@ -534,7 +534,7 @@ async def get_paper_citations(
         refs_out = list(result_out.scalars().all())
 
         for ref in refs_out:
-            cited_paper = ref.referenced_paper
+            cited_paper = ref.target_paper
             citations_out.append(
                 CitationRelationship(
                     related_paper_id=str(cited_paper.id),
@@ -550,8 +550,8 @@ async def get_paper_citations(
             )
 
     # Get totals
-    count_in_query = select(func.count()).where(PaperReference.reference_id == paper.id)
-    count_out_query = select(func.count()).where(PaperReference.paper_id == paper.id)
+    count_in_query = select(func.count()).where(PaperReference.target_paper_id == paper.id)
+    count_out_query = select(func.count()).where(PaperReference.source_paper_id == paper.id)
 
     total_in_result = await db.execute(count_in_query)
     total_out_result = await db.execute(count_out_query)
