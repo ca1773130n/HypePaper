@@ -134,3 +134,50 @@ export const papersApi = {
     api.get<MetricSnapshot[]>(`/api/v1/papers/${id}/metrics`, { params }),
   getHypeScore: (id: string) => api.get<HypeScore>(`/api/v1/papers/${id}/hype-score`),
 }
+
+// Profile API Types
+export interface UserProfile {
+  id: string
+  email: string
+  display_name: string | null
+  avatar_url: string | null
+  preferences: Record<string, any>
+  created_at: string
+  updated_at: string
+  last_login_at: string | null
+}
+
+export interface CrawlerJob {
+  id: string
+  job_id: string
+  status: string
+  source_type: string
+  keywords: string | null
+  papers_crawled: number
+  references_crawled: number
+  started_at: string
+  completed_at: string | null
+}
+
+export interface UserStats {
+  total_crawler_jobs: number
+  active_crawler_jobs: number
+  inactive_crawler_jobs: number
+  custom_topics: number
+  member_since: string
+  last_login: string | null
+}
+
+// Profile API
+export const profileApi = {
+  getProfile: () => api.get<UserProfile>('/api/profile/me'),
+  updateProfile: (data: { display_name?: string; avatar_url?: string }) =>
+    api.put<UserProfile>('/api/profile/me', data),
+  updatePreferences: (data: { preferences: Record<string, any>; merge?: boolean }) =>
+    api.put<UserProfile>('/api/profile/me/preferences', data),
+  getCrawlerJobs: (status?: string) =>
+    api.get<CrawlerJob[]>('/api/profile/me/crawler-jobs', { params: { status } }),
+  getCustomTopics: () => api.get<Topic[]>('/api/profile/me/topics'),
+  getStats: () => api.get<UserStats>('/api/profile/me/stats'),
+  deleteProfile: () => api.delete('/api/profile/me'),
+}
