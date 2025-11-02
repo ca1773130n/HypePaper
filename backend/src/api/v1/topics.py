@@ -8,7 +8,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...database import get_db
-from ...models import Topic, PaperTopicMatch
+from ...models import Topic, PaperTopicMatch, Paper
 from ...api.dependencies import get_current_user, get_user_id
 from ...jobs.celery_app import celery_app
 
