@@ -1,0 +1,23 @@
+name = "hypepaper-crawler-worker"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# Environment variables
+[vars]
+BACKEND_API_URL = "https://api.hypepaper.app"
+
+# Cron trigger - check for jobs every minute
+[triggers]
+crons = ["* * * * *"]
+
+# Resource limits
+[limits]
+cpu_ms = 50000  # 50 seconds max execution time
+
+# Development environment
+[env.development]
+vars = { BACKEND_API_URL = "http://localhost:8000" }
+
+# Production environment
+[env.production]
+vars = { BACKEND_API_URL = "https://api.hypepaper.app" }
