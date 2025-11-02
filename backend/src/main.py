@@ -47,6 +47,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Health check endpoint (MUST be defined BEFORE middleware to bypass rate limiting)
+# This ensures Railway health checks always succeed even during high load
+@app.get("/health")
+async def railway_health_check():
+    """Railway health check endpoint - bypasses all middleware for reliability."""
+    return {"status": "healthy", "service": "hypepaper-api"}
+
 # Add middleware (order matters - first added = outermost)
 app.add_middleware(RateLimiterMiddleware, requests_per_minute=60, requests_per_hour=1000)
 app.add_middleware(ErrorHandlerMiddleware)
@@ -103,12 +110,7 @@ async def root():
         "message": "HypePaper API - Research Paper Tracking with GitHub Stars & Citations",
         "version": "2.0.0",
         "docs": "/docs",
-        "health": "/api/v1/health",
+        "health": "/health",
+        "health_detailed": "/api/v1/health",
         "metrics": "/api/v1/health/metrics",
     }
-
-
-@app.get("/health")
-async def health_legacy():
-    """Legacy health check endpoint."""
-    return {"status": "ok"}
