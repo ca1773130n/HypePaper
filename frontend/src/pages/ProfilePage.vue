@@ -415,25 +415,65 @@ async function loadProfile() {
     error.value = null
 
     console.log('[Profile] Loading profile data...')
-    const [profileRes, statsRes, jobsRes, topicsRes] = await Promise.all([
+
+    // Load each resource independently to handle partial failures gracefully
+    const [profileRes, statsRes, jobsRes, topicsRes] = await Promise.allSettled([
       profileApi.getProfile(),
       profileApi.getStats(),
       profileApi.getCrawlerJobs(),
       profileApi.getCustomTopics()
     ])
 
-    profile.value = profileRes.data
-    stats.value = statsRes.data
-    jobs.value = jobsRes.data
-    customTopics.value = topicsRes.data
-
-    console.log('[Profile] Loaded:', { profile: profile.value, stats: stats.value, jobs: jobs.value.length, topics: customTopics.value.length })
-
-    // Initialize profile form
-    profileForm.value = {
-      display_name: profile.value.display_name || '',
-      avatar_url: profile.value.avatar_url || ''
+    // Handle profile (required)
+    if (profileRes.status === 'fulfilled') {
+      profile.value = profileRes.value.data
+      profileForm.value = {
+        display_name: profile.value.display_name || '',
+        avatar_url: profile.value.avatar_url || ''
+      }
+    } else {
+      console.error('[Profile] Failed to load profile:', profileRes.reason)
+      error.value = 'Failed to load profile. Please try again.'
+      return
     }
+
+    // Handle stats (optional - show defaults on error)
+    if (statsRes.status === 'fulfilled') {
+      stats.value = statsRes.value.data
+    } else {
+      console.warn('[Profile] Failed to load stats:', statsRes.reason)
+      stats.value = {
+        total_crawler_jobs: 0,
+        active_crawler_jobs: 0,
+        inactive_crawler_jobs: 0,
+        custom_topics: 0,
+        member_since: profile.value.created_at,
+        last_login: profile.value.last_login_at
+      }
+    }
+
+    // Handle jobs (optional - show empty array on error)
+    if (jobsRes.status === 'fulfilled') {
+      jobs.value = jobsRes.value.data
+    } else {
+      console.warn('[Profile] Failed to load crawler jobs:', jobsRes.reason)
+      jobs.value = []
+    }
+
+    // Handle topics (optional - show empty array on error)
+    if (topicsRes.status === 'fulfilled') {
+      customTopics.value = topicsRes.value.data
+    } else {
+      console.warn('[Profile] Failed to load custom topics:', topicsRes.reason)
+      customTopics.value = []
+    }
+
+    console.log('[Profile] Loaded:', {
+      profile: profile.value,
+      stats: stats.value,
+      jobs: jobs.value.length,
+      topics: customTopics.value.length
+    })
   } catch (err: any) {
     console.error('[Profile] Failed to load profile:', err)
     error.value = err.response?.data?.detail || 'Failed to load profile. Please try again.'
