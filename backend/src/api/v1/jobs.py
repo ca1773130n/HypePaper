@@ -5,16 +5,17 @@ Endpoints:
 - GET /api/v1/jobs/{job_id} - Get job status and progress
 - POST /api/v1/jobs/{job_id}/cancel - Cancel running job
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
-from uuid import uuid4
+from uuid import uuid4, UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...jobs.celery_app import celery_app
-from .dependencies import get_db
+from .dependencies import get_db, get_current_user
+from ...models.crawler_job import CrawlerJob
 
 router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
 
@@ -292,6 +293,7 @@ async def trigger_crawl_sync(
 async def trigger_crawl(
     request: CrawlJobRequest,
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user),
 ) -> JobResponse:
     """Trigger background paper crawling job.
 
@@ -360,6 +362,44 @@ async def trigger_crawl(
             priority={"low": 3, "normal": 5, "high": 9}.get(request.priority, 5),
         )
 
+        # If periodic crawling is requested, create a CrawlerJob entry
+        if request.period:
+            # Calculate next run time based on period
+            now = datetime.utcnow()
+            if request.period == "daily":
+                next_run = now + timedelta(days=1)
+            elif request.period == "weekly":
+                next_run = now + timedelta(weeks=1)
+            elif request.period == "monthly":
+                next_run = now + timedelta(days=30)
+            else:
+                next_run = None
+
+            # Get user_id if authenticated
+            user_id = UUID(current_user["id"]) if current_user and "id" in current_user else None
+
+            # Create CrawlerJob entry
+            crawler_job = CrawlerJob(
+                job_id=job_id,
+                user_id=user_id,
+                status="processing",
+                source_type=request.source,
+                keywords=request.arxiv_keywords if request.source == "arxiv" else None,
+                reference_depth=request.reference_depth if hasattr(request, 'reference_depth') else 1,
+                period=request.period,
+                papers_crawled=0,
+                references_crawled=0,
+                logs=[{
+                    "timestamp": now.isoformat(),
+                    "level": "info",
+                    "message": f"Periodic {request.period} crawler created for {request.source}"
+                }],
+                started_at=now,
+                next_run=next_run
+            )
+            db.add(crawler_job)
+            await db.commit()
+
         # Estimate completion time (rough estimate)
         if request.source == "arxiv":
             estimated_minutes = request.arxiv_max_results // 10
@@ -370,6 +410,7 @@ async def trigger_crawl(
 
         estimated_completion = datetime.utcnow().isoformat() + f"+00:00"  # Simplified
 
+        period_info = f" (repeating {request.period})" if request.period else ""
         return JobResponse(
             job_id=job_id,
             job_type=job_type,
@@ -379,6 +420,7 @@ async def trigger_crawl(
             metadata={
                 "source": request.source,
                 "enable_enrichment": request.enable_enrichment,
+                "period": request.period,
                 **task_kwargs,
             },
         )

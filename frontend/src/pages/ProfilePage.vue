@@ -223,6 +223,12 @@
                   </div>
                   <div class="ml-4 flex space-x-2">
                     <button
+                      @click="openCrawlerDialog(topic)"
+                      class="px-3 py-1 bg-green-500/20 text-green-300 border border-green-500/30 rounded-lg hover:bg-green-500/30 transition-all text-sm"
+                    >
+                      Add Crawler
+                    </button>
+                    <button
                       @click="editTopic(topic)"
                       class="text-blue-400 hover:text-blue-300 text-sm"
                     >
@@ -343,6 +349,67 @@
         </form>
       </div>
     </div>
+
+    <!-- Crawler Configuration Dialog -->
+    <div v-if="showCrawlerDialog" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" @click.self="closeCrawlerDialog">
+      <div class="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-white/20 shadow-2xl mx-4">
+        <h3 class="text-lg font-medium mb-4 text-white">Add Crawler for "{{ selectedTopic?.name }}"</h3>
+        <form @submit.prevent="createCrawler">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1">Crawler Type</label>
+              <select
+                v-model="crawlerForm.source"
+                required
+                class="w-full rounded-lg bg-white/5 border border-white/10 text-white shadow-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 px-3 py-2"
+              >
+                <option value="arxiv">arXiv Papers</option>
+                <option value="conference">Conference Papers</option>
+                <option value="citations">Citation Network</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1">Frequency</label>
+              <select
+                v-model="crawlerForm.period"
+                required
+                class="w-full rounded-lg bg-white/5 border border-white/10 text-white shadow-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 px-3 py-2"
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+            <div v-if="crawlerForm.source === 'arxiv'">
+              <label class="block text-sm font-medium text-gray-300 mb-1">Max Results per Run</label>
+              <input
+                v-model.number="crawlerForm.arxiv_max_results"
+                type="number"
+                min="1"
+                max="1000"
+                class="w-full rounded-lg bg-white/5 border border-white/10 text-white shadow-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 px-3 py-2"
+              />
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              @click="closeCrawlerDialog"
+              class="px-4 py-2 border border-white/10 rounded-lg text-gray-300 hover:bg-white/5 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="creatingCrawler"
+              class="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ creatingCrawler ? 'Creating...' : 'Run' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -369,11 +436,19 @@ const jobFilter = ref<string | null>(null)
 const showEditProfile = ref(false)
 const showAddModal = ref(false)
 const editingTopic = ref<any>(null)
+const showCrawlerDialog = ref(false)
+const selectedTopic = ref<Topic | null>(null)
+const creatingCrawler = ref(false)
 
 // Forms
 const profileForm = ref({ display_name: '', avatar_url: '' })
 const topicForm = ref({ name: '', description: '', keywords: [] })
 const keywordsInput = ref('')
+const crawlerForm = ref({
+  source: 'arxiv',
+  period: 'weekly',
+  arxiv_max_results: 100
+})
 
 // Computed
 const filteredJobs = computed(() => {
@@ -546,6 +621,64 @@ function closeModal() {
   editingTopic.value = null
   topicForm.value = { name: '', description: '', keywords: [] }
   keywordsInput.value = ''
+}
+
+function openCrawlerDialog(topic: Topic) {
+  selectedTopic.value = topic
+  showCrawlerDialog.value = true
+  crawlerForm.value = {
+    source: 'arxiv',
+    period: 'weekly',
+    arxiv_max_results: 100
+  }
+}
+
+function closeCrawlerDialog() {
+  showCrawlerDialog.value = false
+  selectedTopic.value = null
+  creatingCrawler.value = false
+}
+
+async function createCrawler() {
+  if (!selectedTopic.value) return
+
+  try {
+    creatingCrawler.value = true
+    console.log('[Profile] Creating crawler for topic:', selectedTopic.value.name)
+
+    // Build the crawler request based on selected topic
+    const crawlerRequest: any = {
+      source: crawlerForm.value.source,
+      period: crawlerForm.value.period,
+      priority: 'normal',
+      enable_enrichment: false
+    }
+
+    // Add source-specific parameters
+    if (crawlerForm.value.source === 'arxiv') {
+      // Use topic keywords as arxiv keywords
+      const keywords = selectedTopic.value.keywords?.join(' ') || selectedTopic.value.name
+      crawlerRequest.arxiv_keywords = keywords
+      crawlerRequest.arxiv_max_results = crawlerForm.value.arxiv_max_results
+    }
+
+    console.log('[Profile] Crawler request:', crawlerRequest)
+
+    // Call the jobs API to create the crawler
+    const response = await api.post('/api/v1/jobs/crawl', crawlerRequest)
+
+    console.log('[Profile] Crawler created successfully:', response.data)
+    alert(`Crawler created successfully! Job ID: ${response.data.job_id}`)
+
+    // Close dialog and reload data
+    closeCrawlerDialog()
+    await loadProfile()
+  } catch (err: any) {
+    console.error('[Profile] Failed to create crawler:', err)
+    alert(err.response?.data?.detail || 'Failed to create crawler. Please try again.')
+  } finally {
+    creatingCrawler.value = false
+  }
 }
 
 onMounted(() => {
