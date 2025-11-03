@@ -7,19 +7,33 @@ import redis.asyncio as redis
 
 
 class CacheService:
-    """Async Redis cache service."""
+    """Async Redis cache service with graceful degradation."""
 
     def __init__(self):
-        """Initialize Redis connection."""
-        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/1")
-        self.redis_client = redis.from_url(
-            redis_url,
-            encoding="utf-8",
-            decode_responses=True,
-            socket_connect_timeout=5,
-            socket_keepalive=True,
-        )
+        """Initialize Redis connection (optional - degrades gracefully if unavailable)."""
+        redis_url = os.getenv("REDIS_URL")
+        self.redis_client = None
+        self.redis_available = False
         self.default_ttl = 300  # 5 minutes default TTL
+
+        # Only connect if REDIS_URL is explicitly set
+        if redis_url:
+            try:
+                self.redis_client = redis.from_url(
+                    redis_url,
+                    encoding="utf-8",
+                    decode_responses=True,
+                    socket_connect_timeout=5,
+                    socket_keepalive=True,
+                )
+                self.redis_available = True
+                print(f"✓ Redis cache connected: {redis_url}")
+            except Exception as e:
+                print(f"⚠ Redis cache unavailable (degrading gracefully): {e}")
+                self.redis_client = None
+                self.redis_available = False
+        else:
+            print("ℹ Redis cache disabled (REDIS_URL not set) - using memory cache fallback")
 
     async def get(self, key: str) -> Optional[Any]:
         """Get value from cache.
@@ -30,6 +44,9 @@ class CacheService:
         Returns:
             Cached value or None if not found
         """
+        if not self.redis_available or not self.redis_client:
+            return None  # Cache miss when Redis unavailable
+
         try:
             value = await self.redis_client.get(key)
             if value is None:
@@ -51,6 +68,9 @@ class CacheService:
         Returns:
             True if successful, False otherwise
         """
+        if not self.redis_available or not self.redis_client:
+            return False  # Silently fail when Redis unavailable
+
         try:
             ttl = ttl or self.default_ttl
             serialized = json.dumps(value)
@@ -69,6 +89,9 @@ class CacheService:
         Returns:
             True if key was deleted, False otherwise
         """
+        if not self.redis_available or not self.redis_client:
+            return False
+
         try:
             result = await self.redis_client.delete(key)
             return result > 0
@@ -85,6 +108,9 @@ class CacheService:
         Returns:
             Number of keys deleted
         """
+        if not self.redis_available or not self.redis_client:
+            return 0
+
         try:
             keys = []
             async for key in self.redis_client.scan_iter(match=pattern):
@@ -106,6 +132,9 @@ class CacheService:
         Returns:
             True if key exists, False otherwise
         """
+        if not self.redis_available or not self.redis_client:
+            return False
+
         try:
             result = await self.redis_client.exists(key)
             return result > 0
@@ -123,6 +152,9 @@ class CacheService:
         Returns:
             New value or None on error
         """
+        if not self.redis_available or not self.redis_client:
+            return None
+
         try:
             return await self.redis_client.incrby(key, amount)
         except Exception as e:
@@ -131,7 +163,8 @@ class CacheService:
 
     async def close(self):
         """Close Redis connection."""
-        await self.redis_client.close()
+        if self.redis_client:
+            await self.redis_client.close()
 
 
 # Global cache instance

@@ -1,12 +1,18 @@
 """Celery application configuration for background job processing."""
 
+import os
 from celery import Celery
 from celery.schedules import crontab
 
+# Use environment variable for Redis URL, or None to disable Celery
+# Note: This project now uses Cloudflare Workers + Upstash for async jobs
+# Celery is optional and only needed for scheduled tasks
+REDIS_URL = os.getenv('REDIS_URL')
+
 celery_app = Celery(
     'hypepaper',
-    broker='redis://localhost:6379/0',
-    backend='redis://localhost:6379/1'  # Use Redis backend instead of PostgreSQL for simplicity
+    broker=REDIS_URL or 'redis://localhost:6379/0',
+    backend=REDIS_URL or 'redis://localhost:6379/1'
 )
 
 celery_app.conf.update(
