@@ -52,21 +52,27 @@ async def readiness_check(db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
     except Exception as e:
         checks["database"] = f"unhealthy: {str(e)}"
 
-    # Check Redis
+    # Check Redis (optional - graceful degradation)
     try:
         cache = get_cache()
-        await cache.set("health_check", {"test": True}, ttl=10)
-        test_value = await cache.get("health_check")
-        if test_value and test_value.get("test") is True:
-            checks["cache"] = "healthy"
+        if hasattr(cache, 'redis_available') and not cache.redis_available:
+            checks["cache"] = "disabled (no REDIS_URL)"
         else:
-            checks["cache"] = "unhealthy"
+            await cache.set("health_check", {"test": True}, ttl=10)
+            test_value = await cache.get("health_check")
+            if test_value and test_value.get("test") is True:
+                checks["cache"] = "healthy"
+            else:
+                checks["cache"] = "disabled"
     except Exception as e:
-        checks["cache"] = f"unhealthy: {str(e)}"
+        checks["cache"] = f"disabled: {str(e)}"
 
-    # Determine overall status
-    all_healthy = all(v == "healthy" for v in checks.values())
-    overall_status = "ready" if all_healthy else "not_ready"
+    # Determine overall status (cache is optional, only database is required)
+    database_healthy = checks.get("database") == "healthy"
+    cache_status = checks.get("cache", "")
+    cache_ok = cache_status in ["healthy", "disabled", "disabled (no REDIS_URL)"] or "disabled" in cache_status
+
+    overall_status = "ready" if (database_healthy and cache_ok) else "not_ready"
 
     return {
         "status": overall_status,
