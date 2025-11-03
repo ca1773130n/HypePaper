@@ -6,7 +6,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api import papers, votes, authors
@@ -114,3 +114,67 @@ async def root():
         "health_detailed": "/api/v1/health",
         "metrics": "/api/v1/health/metrics",
     }
+
+
+@app.get("/oauth/redirect-proxy")
+async def oauth_redirect_proxy(request: Request):
+    """
+    OAuth redirect proxy for Railway preview deployments.
+
+    This endpoint provides a stable redirect URI for Google OAuth that works
+    with Railway's dynamic preview deployment URLs.
+
+    The frontend URL is determined based on:
+    - Production: Uses configured production frontend URL
+    - Preview: Uses RAILWAY_STATIC_URL for PR preview deployments
+    - Development: Falls back to localhost
+
+    Google OAuth Configuration:
+    Add this single redirect URI to your Google OAuth client:
+    - https://api.hypepaper.app/oauth/redirect-proxy
+    - https://your-railway-backend.up.railway.app/oauth/redirect-proxy
+
+    This eliminates the need to add each preview deployment URL to Google OAuth.
+    """
+    from fastapi.responses import RedirectResponse
+    import urllib.parse
+
+    # Get OAuth parameters from hash fragment or query string
+    # Note: Hash fragments (#) are not sent to server, so we rely on query params
+    # The frontend should convert hash to query when using this proxy
+    request_url = str(request.url)
+
+    # Determine frontend URL based on environment
+    railway_env = os.getenv("RAILWAY_ENVIRONMENT_NAME", "")
+    railway_static_url = os.getenv("RAILWAY_STATIC_URL", "")
+
+    if railway_env.startswith("pr-"):
+        # Railway preview deployment
+        # Frontend preview URL pattern: https://<service>-<pr>-<hash>.railway.app
+        if railway_static_url:
+            frontend_url = f"https://{railway_static_url}"
+        else:
+            # Fallback: try to construct from backend URL
+            backend_url = request.url.hostname
+            if backend_url and "railway.app" in backend_url:
+                # Replace "backend" with "frontend" in hostname
+                frontend_hostname = backend_url.replace("backend", "frontend")
+                frontend_url = f"https://{frontend_hostname}"
+            else:
+                frontend_url = "http://localhost:5173"
+    elif os.getenv("ENVIRONMENT") == "production":
+        # Production environment
+        frontend_url = os.getenv("FRONTEND_URL", "https://hypepaper.pages.dev")
+    else:
+        # Local development
+        frontend_url = "http://localhost:5173"
+
+    # Build callback URL
+    callback_url = f"{frontend_url}/auth/callback"
+
+    # Preserve all query parameters and forward to frontend
+    query_string = request.url.query
+    if query_string:
+        callback_url += f"?{query_string}"
+
+    return RedirectResponse(url=callback_url, status_code=302)

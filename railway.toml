@@ -16,4 +16,4 @@ name = "api"
 # Custom domain: api.hypepaper.app (configured in Railway dashboard)
 
 [environments.production]
-variables = { ENVIRONMENT = "production" }
+variables = { ENVIRONMENT = "production", FRONTEND_URL = "https://hypepaper.pages.dev" }
