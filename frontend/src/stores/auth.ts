@@ -13,10 +13,22 @@ export const useAuthStore = defineStore('auth', () => {
   async function signInWithGoogle() {
     loading.value = true
     try {
+      // Use backend OAuth redirect proxy for preview deployments
+      // This provides a stable redirect URL that works across all Railway preview deployments
+      const apiUrl = import.meta.env.VITE_API_URL || window.location.origin
+      const backendRedirectProxy = `${apiUrl}/oauth/redirect-proxy`
+
+      // For the proxy to know where to redirect, we need to pass the frontend URL
+      // We'll use the state parameter to pass the frontend callback URL
+      const frontendCallback = encodeURIComponent(`${window.location.origin}/auth/callback`)
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          // Use backend proxy as stable redirect target
+          redirectTo: `${backendRedirectProxy}?frontend_callback=${frontendCallback}`,
+          // Skip browser redirect if possible (for debugging)
+          skipBrowserRedirect: false
         }
       })
       if (error) throw error
